@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>倉頡輸入法練習</title>
+<style>
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; font-family: "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", "Noto Sans HK", "MingLiU_HKSCS", "MingLiU_HKSCS-ExtB", "MingLiU-ExtB", "SimSun-ExtB", "SimSun-ExtG", sans-serif; background: #f4f2ec; color: #263238; }
+  #themeBtn { margin-left: auto; background: transparent; border: 1px solid #78909c; color: #eceff1; border-radius: 6px; padding: 5px 12px; font: inherit; font-size: 14px; cursor: pointer; }
+  /* ---- 深色主題 ---- */
+  body.dark { background: #15191c; color: #dde3e6; }
+  body.dark header { background: #0c0f11; }
+  body.dark nav button.on { background: #37474f; color: #fff; }
+  body.dark .card { background: #1f262a; box-shadow: 0 1px 3px rgba(0,0,0,.5); }
+  body.dark select, body.dark button.btn, body.dark textarea { background: #263035; color: #dde3e6; border-color: #455a64; }
+  body.dark button.btn.primary { background: #4db6ac; color: #102024; border-color: #4db6ac; }
+  body.dark #imeWarn { background: #3e2a14; border-color: #8d5b1f; color: #ffcc80; }
+  body.dark #title, body.dark #inputBar .lbl, body.dark #stats, body.dark #cand { color: #90a4ae; }
+  body.dark #stats b { color: #eceff1; }
+  body.dark #text.grid span.good { color: #558b2f; }
+  body.dark #text.para span.good { color: #81c784; }
+  body.dark #text span.bad { color: #ef9a9a; background: #4a1f1f; }
+  body.dark #text span.hinted { color: #ffb74d; }
+  body.dark #text span.cur { background: #5d4c12; box-shadow: inset 0 -3px 0 #ffca28; }
+  body.dark #text span.skip { color: #546e7a; }
+  body.dark #result { background: rgba(31,38,42,.96); }
+  body.dark .k { background: #2c3a40; }
+  body.dark .k i { color: #90a4ae; }
+  body.dark #buf.wrong .k { background: #4a1f1f; }
+  body.dark #buf .caret { background: #dde3e6; }
+  body.dark #msg { color: #ef9a9a; }
+  body.dark #msg.ok { color: #81c784; }
+  body.dark kbd { background: #263035; border-color: #546e7a; color: #dde3e6; }
+  body.dark #kb .key { background: #263035; box-shadow: 0 1px 2px rgba(0,0,0,.6); }
+  body.dark #kb .key i { color: #78909c; }
+  body.dark #kb .key.next { background: #8d6e00; }
+  body.dark #kb .key.press { background: #00695c; }
+  body.dark details td, body.dark details th { border-color: #37474f; }
+  header { display: flex; align-items: center; gap: 24px; padding: 10px 24px; background: #2f3e46; color: #fff; flex-wrap: wrap; }
+  header h1 { font-size: 20px; margin: 0; font-weight: 600; letter-spacing: 2px; }
+  nav button { background: transparent; border: 0; color: #cfd8dc; font: inherit; font-size: 15px; padding: 7px 14px; border-radius: 6px; cursor: pointer; }
+  nav button:hover { color: #fff; }
+  nav button.on { background: #fff; color: #2f3e46; }
+  main { max-width: 1120px; margin: 0 auto; padding: 14px 24px 30px; }
+  .opt { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin-bottom: 10px; font-size: 14px; }
+  select, button.btn { font: inherit; font-size: 14px; padding: 5px 10px; border: 1px solid #b0bec5; border-radius: 6px; background: #fff; cursor: pointer; }
+  button.btn.primary { background: #2f3e46; color: #fff; border-color: #2f3e46; }
+  textarea { width: 100%; min-height: 90px; font: inherit; font-size: 15px; padding: 8px; border: 1px solid #b0bec5; border-radius: 6px; }
+  #imeWarn { background: #fff3e0; border: 1px solid #ffb74d; color: #e65100; padding: 8px 14px; border-radius: 8px; margin-bottom: 10px; }
+  #board { display: grid; grid-template-columns: 1fr 270px; gap: 16px; }
+  .card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  #textWrap { padding: 16px 20px; min-height: 250px; max-height: 360px; overflow: auto; position: relative; }
+  #title { font-size: 15px; color: #78909c; margin-bottom: 6px; }
+  #text.grid span { display: inline-block; width: 1.5em; text-align: center; font-size: 38px; margin: 3px; border-radius: 8px; }
+  #text.para { font-size: 26px; line-height: 1.85; letter-spacing: 1px; }
+  #text.para span { border-radius: 4px; }
+  #text span.good { color: #9ccc65; }
+  #text.para span.good { color: #2e7d32; }
+  #text span.bad { color: #c62828; background: #fdecea; }
+  #text span.hinted { color: #ef6c00; }
+  #text span.cur { background: #ffe082; box-shadow: inset 0 -3px 0 #f57f17; }
+  #text span.skip { color: #b0bec5; }
+  #result { position: absolute; inset: 0; background: rgba(255,255,255,.96); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-size: 18px; text-align: center; }
+  #result .big { font-size: 26px; font-weight: 600; }
+  #hint { padding: 14px; text-align: center; }
+  #hChar { font-size: 92px; line-height: 1.1; min-height: 100px; }
+  #hBody { min-height: 90px; font-size: 14px; }
+  .code { display: flex; justify-content: center; gap: 5px; margin: 6px 0; flex-wrap: wrap; }
+  .k { display: inline-flex; flex-direction: column; align-items: center; background: #e8f0f3; border-radius: 8px; padding: 3px 7px; min-width: 36px; }
+  .k b { font-size: 22px; font-weight: normal; }
+  .k i { font-style: normal; font-size: 12px; color: #607d8b; }
+  .muted { color: #90a4ae; }
+  kbd { display: inline-block; padding: 2px 8px; border: 1px solid #b0bec5; border-bottom-width: 3px; border-radius: 5px; background: #fafafa; font-family: Consolas, monospace; font-size: 15px; }
+  #inputBar { margin: 14px 0 10px; padding: 10px 16px; display: flex; align-items: center; gap: 16px; min-height: 64px; flex-wrap: wrap; }
+  #inputBar .lbl { color: #78909c; font-size: 14px; }
+  #buf { display: flex; gap: 4px; min-width: 200px; }
+  #buf.wrong .k { background: #fdecea; }
+  #buf .caret { width: 2px; height: 36px; background: #263238; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  #cand { font-size: 18px; color: #546e7a; }
+  #msg { font-size: 14px; color: #c62828; }
+  #msg.ok { color: #2e7d32; }
+  #kb .row { display: flex; justify-content: center; gap: 6px; margin: 6px 0; }
+  #kb .key { width: 54px; height: 54px; background: #fff; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.18); display: flex; flex-direction: column; align-items: center; justify-content: center; transition: background .12s; }
+  #kb .key b { font-size: 22px; font-weight: normal; }
+  #kb .key i { font-size: 11px; color: #90a4ae; font-style: normal; }
+  #kb .key.space { width: 330px; font-size: 13px; color: #78909c; }
+  #kb .key.next { background: #ffe082; }
+  #kb .key.press { background: #b2dfdb; }
+  #stats { display: flex; gap: 22px; justify-content: center; margin: 12px 0; font-size: 15px; color: #546e7a; flex-wrap: wrap; }
+  #stats b { color: #263238; font-size: 18px; }
+  details { margin-top: 18px; padding: 12px 18px; }
+  details summary { cursor: pointer; font-weight: 600; }
+  details table { border-collapse: collapse; margin: 8px 0; }
+  details td, details th { border: 1px solid #cfd8dc; padding: 4px 10px; text-align: center; }
+  details p, details li { line-height: 1.7; font-size: 14px; }
+  .shake { animation: shake .3s; }
+  @keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  footer { text-align: center; font-size: 12px; color: #90a4ae; padding: 10px 0 20px; }
+  @media (max-width: 820px) { #board { grid-template-columns: 1fr; } #kb .key { width: 30px; } #kb .key.space { width: 200px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>倉頡輸入法練習</h1>
+  <nav id="tabs">
+    <button data-mode="char" class="on">單字練習</button>
+    <button data-mode="text">文章練習</button>
+    <button data-mode="punct">標點符號</button>
+    <button data-mode="review">錯字複習</button>
+    <button data-mode="custom">自訂文字</button>
+  </nav>
+  <button id="themeBtn">🌙 深色</button>
+</header>
+<main>
+  <section id="opts">
+    <div class="opt" data-for="char">
+      範圍 <select id="range"></select>
+      順序 <select id="order"><option value="rand">隨機</option><option value="seq">依常用程度逐個練</option></select>
+      <label><input type="checkbox" id="mix"> 夾雜標點符號</label>
+    </div>
+    <div class="opt" data-for="text">文章 <select id="passage"></select></div>
+    <div class="opt" data-for="punct">
+      練習內容 <select id="punctSrc">
+        <option value="rand">隨機標點符號</option>
+        <option value="passage">文章填標點（文字已打好，只打標點）</option>
+      </select>
+    </div>
+    <div class="opt" data-for="custom" style="flex-direction:column;align-items:stretch">
+      <textarea id="customText" placeholder="貼上你想練習的中文文字（半形標點會自動轉成全形；英文、數字會略過）"></textarea>
+      <div><button class="btn primary" id="customGo">開始練習這段文字</button></div>
+    </div>
+    <div class="opt">
+      提示 <select id="hintMode">
+        <option value="error">打錯才顯示</option>
+        <option value="always">一直顯示</option>
+        <option value="never">不顯示</option>
+      </select>
+      標點輸入方式 <select id="punctWay">
+        <option value="any">按鍵或符號碼都可以</option>
+        <option value="key">只用符號鍵</option>
+        <option value="code">只用符號碼（ZX…）</option>
+      </select>
+      <label><input type="checkbox" id="auto"> 自動上字（碼對了不用按空白鍵）</label>
+      <button class="btn" id="restart">重新開始</button>
+    </div>
+  </section>
+
+  <div id="imeWarn" hidden>偵測到系統輸入法正在使用中。請先切換成英文輸入（例如按 Shift 或 Win + 空白鍵），這個網頁會自己模擬倉頡輸入。</div>
+
+  <div id="board">
+    <div id="textWrap" class="card">
+      <div id="title"></div>
+      <div id="text"></div>
+      <div id="result" hidden></div>
+    </div>
+    <aside id="hint" class="card">
+      <div id="hChar"></div>
+      <div id="hBody"></div>
+    </aside>
+  </div>
+
+  <div id="inputBar" class="card">
+    <span class="lbl">輸入碼</span>
+    <span id="buf"></span>
+    <span id="cand"></span>
+    <span id="msg"></span>
+  </div>
+
+  <div id="stats"></div>
+  <div id="kb"></div>
+
+  <details class="card">
+    <summary>使用說明、字根表與標點按鍵</summary>
+    <p><b>怎麼練：</b>用英文鍵盤直接打倉頡碼（例如「明」打 <kbd>A</kbd><kbd>B</kbd>），再按 <kbd>空白鍵</kbd> 上字。<kbd>Backspace</kbd> 刪一碼，<kbd>Esc</kbd> 清除，<kbd>Tab</kbd> 偷看提示。打錯時會告訴你打出了哪個字，並顯示正確拆法；打錯的字會記到「錯字複習」。</p>
+    <p><b>注意：</b>練習前請把系統輸入法切成英文，網頁會自己模擬倉頡。</p>
+    <p><b>取碼口訣：</b>最多五碼。單一字形取「首、次、三、尾」；合體字第一部分取「首、尾」，第二部分取「首、次、尾」。</p>
+    <table id="radTable"></table>
+    <p><b>標點符號：</b>可以直接按鍵盤上的符號鍵，也可以用倉頡的符號碼（ZX 開頭）輸入。</p>
+    <table id="punctTable"></table>
+  </details>
+  <footer>字碼資料：rime-cangjie 倉頡五代字碼表（GPL）；字頻排序：rime-essay。收錄 Big5 常用字、次常用字及香港增補字符集（HKSCS）。部分香港字屬擴展 B 區，需要電腦有對應字型（Windows 內建細明體 ExtB）才能正常顯示。</footer>
+</main>
+
+<script src="cangjie-data.js"></script>
+<script>
+'use strict';
+
+/* ---------- 基本資料 ---------- */
+const RAD = { a:'日', b:'月', c:'金', d:'木', e:'水', f:'火', g:'土', h:'竹', i:'戈', j:'十', k:'大', l:'中', m:'一',
+  n:'弓', o:'人', p:'心', q:'手', r:'口', s:'尸', t:'廿', u:'山', v:'女', w:'田', x:'難', y:'卜', z:'重' };
+const RAD_GROUPS = [['哲理類','abcdefg'], ['筆畫類','hijklmn'], ['人體類','opqr'], ['字形類','stuvwy'], ['特別鍵','xz']];
+const RAD_CHARS = '日月金木水火土竹戈十大中一弓人心手口尸廿山女田卜';
+
+// [符號, 鍵盤按鍵, 倉頡符號碼, 按鍵說明]
+const PUNCT = [
+  ['，', ',', 'zxab', ','], ['、', '\\', 'zxac', '\\'], ['。', '.', 'zxad', '.'],
+  ['；', ';', 'zxag', ';'], ['：', ':', 'zxah', 'Shift + ;'], ['？', '?', 'zxai', 'Shift + /'],
+  ['！', '!', 'zxaj', 'Shift + 1'], ['「', '[', 'zxcd', '['], ['」', ']', 'zxce', ']'],
+  ['『', '{', 'zxch', 'Shift + ['], ['』', '}', 'zxci', 'Shift + ]'], ['（', '(', 'zxbe', 'Shift + 9'],
+  ['）', ')', 'zxbf', 'Shift + 0'], ['《', '<', 'zxbu', 'Shift + ,'], ['》', '>', 'zxbv', 'Shift + .'],
+  ['〈', '', 'zxby', ''], ['〉', '', 'zxca', ''], ['…', '^', 'zxal', 'Shift + 6（一次出「……」）'],
+  ['—', '_', 'zxay', 'Shift + -（一次出「——」）'], ['·', '', 'zxaf', ''],
+  ['【', '', 'zxbq', ''], ['】', '', 'zxbr', ''], ['〔', '', 'zxbm', ''], ['〕', '', 'zxbn', ''],
+];
+const PINFO = new Map();
+const KEYOUT = {};
+for (const [ch, key, code, label] of PUNCT) {
+  PINFO.set(ch, { key, code, label });
+  if (key) KEYOUT[key] = (ch === '…' || ch === '—') ? ch + ch : ch;
+}
+// 練標點時的出現比重
+const PUNCT_POOL = '，，，，。。。、、、？？！！：：；「」「」『』（）《》…—〈〉·【】〔〕';
+const MIX_POOL = '，，，，，。。。、、？！：；「」';
+
+const PASSAGES = [
+  { title: '學習倉頡', text: '倉頡輸入法是依照字形來取碼的。剛開始學習時，難免會覺得字根很多、規則很複雜；但只要每天練習十分鐘，熟悉了「日、月、金、木、水、火、土」等字根，速度自然會越來越快。記住：先求正確，再求快！' },
+  { title: '雨後的早晨', text: '昨夜下了一場大雨，今天早上，空氣特別清新。路邊的樹葉還掛著水珠，在陽光下閃閃發亮。我沿著河邊慢慢散步，聽見鳥兒在枝頭唱歌，心情也跟著輕鬆起來。' },
+  { title: '約看電影', text: '「你今天晚上有空嗎？」小明問。\n「有啊，怎麼了？」\n「我想去看電影，聽說新上映的那部很好看！」\n「好啊！那我們七點在車站見面，好不好？」' },
+  { title: '煮一碗麵', text: '煮一碗好吃的麵，需要準備以下材料：麵條、雞蛋、青菜、蔥花和一點醬油。先把水燒開，再放入麵條；等麵快熟的時候，加入青菜和雞蛋。最後撒上蔥花——簡單又美味。' },
+  { title: '圖書館', text: '學校的圖書館共有三層：一樓是期刊區，二樓是中文書籍，三樓則是自修室。每到考試前，自修室總是坐滿了人，大家都安安靜靜地看書，只聽得見翻頁的聲音……' },
+  { title: '月亮的秘密', text: '月亮本身並不會發光，我們看到的月光，其實是太陽光照在月球表面後反射出來的。月亮繞地球一圈大約需要二十七天；因為地球同時也在繞著太陽運行，所以從一次滿月到下一次滿月，大約要二十九天半。' },
+  { title: '火車旅行', text: '我喜歡坐火車旅行。窗外的風景不停地變換：有時是金黃色的稻田，有時是連綿的山脈，有時又是藍色的大海。帶一本好書、一杯熱茶，幾個小時的車程，一點也不覺得無聊。' },
+  { title: '珍惜時間', text: '有人說：「時間就是金錢。」其實，時間比金錢更寶貴——錢花掉了還可以再賺，時間過去了卻永遠不會回來。所以，我們應該好好珍惜每一天，做自己真正喜歡的事情。' },
+  { title: '讀書心得', text: '上個月，我讀了一本名叫《海邊的燈塔》的小說。故事講述一位老人獨自守護燈塔（一守就是四十年）的經歷。書中老人說：「我母親常對我說：『燈不是為自己而亮的。』」讀完以後，我想了很久。' },
+  { title: '運動的好處', text: '每天運動三十分鐘，對身體有很多好處：可以增強體力、改善睡眠，還能讓心情變好。跑步、游泳、騎單車、打籃球……選一項自己喜歡的運動，持之以恆，比什麼都重要！' },
+  { title: '城市的夜晚', text: '夜幕低垂，城市的燈火一盞盞亮了起來。街上的行人漸漸多了：下班的上班族、放學的學生、出來散步的老夫婦。夜市裡傳來陣陣香味，烤玉米、蚵仔煎、珍珠奶茶，每一樣都讓人忍不住停下腳步。' },
+  { title: '靜夜思（李白）', text: '床前明月光，疑是地上霜。舉頭望明月，低頭思故鄉。' },
+  { title: '登鸛雀樓（王之渙）', text: '白日依山盡，黃河入海流。欲窮千里目，更上一層樓。' },
+  { title: '《論語．學而》', text: '子曰：「學而時習之，不亦說乎？有朋自遠方來，不亦樂乎？人不知而不慍，不亦君子乎？」' },
+  { title: '寫信給朋友', text: '親愛的阿華：\n好久不見，你最近好嗎？上星期我搬了新家，房間不大，但窗外有一棵很高的樹，每天早上都有小鳥來拜訪。下次放假，歡迎你來玩！\n祝 平安\n小雨 敬上' },
+  { title: '植物的生長', text: '植物生長需要三樣東西：陽光、空氣和水。葉子裡的葉綠素能吸收陽光，把二氧化碳和水轉化成養分，同時釋放出氧氣，這個過程叫做「光合作用」。如果把植物放在黑暗的地方，它很快就會變黃、枯萎。' },
+];
+
+/* ---------- 載入字碼 ---------- */
+const DICT = new Map();   // 字 -> [碼]
+const REV = new Map();    // 碼 -> [字]（按常用程度）
+const LV1 = [], LV2 = [], HK = [];
+function loadData(s, arr) {
+  if (!s) return;
+  for (const tok of s.split(' ')) {
+    const ch = String.fromCodePoint(tok.codePointAt(0));   // 香港字有擴展 B 區字（兩個 UTF-16 單位）
+    const codes = tok.slice(ch.length).split('|');
+    DICT.set(ch, codes);
+    arr.push(ch);
+    for (const c of codes) {
+      if (!REV.has(c)) REV.set(c, []);
+      const r = REV.get(c);
+      if (r.length < 6) r.push(ch);
+    }
+  }
+}
+loadData(window.CJ_LV1, LV1);
+loadData(window.CJ_LV2, LV2);
+loadData(window.CJ_HK, HK);
+for (const [ch, p] of PINFO) {
+  DICT.set(ch, [p.code]);
+  if (!REV.has(p.code)) REV.set(p.code, [ch]);
+}
+// 字根練習時只收單碼
+const RAD_CODE = {};
+for (const ch of RAD_CHARS) {
+  const one = (DICT.get(ch) || []).find(c => c.length === 1);
+  if (one) RAD_CODE[ch] = one;
+}
+
+/* ---------- 狀態與設定 ---------- */
+const $ = s => document.querySelector(s);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('cj-' + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('cj-' + k, JSON.stringify(v)); } catch {} },
+};
+const cfg = Object.assign({ range: '300', order: 'rand', hintMode: 'error', auto: false, passage: 0, mode: 'char',
+  mix: false, punctSrc: 'rand', punctWay: 'any',
+  dark: !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) }, store.get('cfg', {}));
+const errBook = store.get('errors', {});
+const seqPos = store.get('seq', {});
+const ROUND = 20;
+
+const S = { tokens: [], spans: [], pos: 0, buf: '', done: false, title: '',
+  typed: 0, firstOk: 0, errs: 0, active: 0, last: 0 };
+
+function saveCfg() { store.set('cfg', cfg); }
+function addErr(ch) { if (PINFO.has(ch)) return; errBook[ch] = (errBook[ch] || 0) + 1; store.set('errors', errBook); }
+function decErr(ch) { if (errBook[ch]) { errBook[ch]--; if (errBook[ch] <= 0) delete errBook[ch]; store.set('errors', errBook); } }
+
+/* ---------- 題目產生 ---------- */
+function pool(range) {
+  if (range === 'rad') return [...RAD_CHARS];
+  if (range === 'lv1') return LV1;
+  if (range === 'lv2') return LV2;
+  if (range === 'all') return LV1.concat(LV2);
+  if (range === 'hk') return HK;
+  if (range === 'hk1000') return HK.slice(0, 1000);
+  if (range === 'allhk') return LV1.concat(LV2, HK);
+  return LV1.slice(0, +range);
+}
+function sample(arr, n) {
+  const res = [], used = new Set();
+  n = Math.min(n, arr.length);
+  while (res.length < n) {
+    const i = Math.floor(Math.random() * arr.length);
+    if (!used.has(i)) { used.add(i); res.push(arr[i]); }
+  }
+  return res;
+}
+function genChars() {
+  const p = pool(cfg.range);
+  if (cfg.order === 'seq') {
+    let i = seqPos[cfg.range] || 0;
+    if (i >= p.length) i = 0;
+    const out = p.slice(i, i + ROUND);
+    seqPos[cfg.range] = i + out.length;
+    store.set('seq', seqPos);
+    const n = Math.min(i + out.length, p.length);
+    S.title = `依常用程度：第 ${i + 1}–${n} 字（共 ${p.length} 字）`;
+    return mixIn(out);
+  }
+  S.title = `隨機抽 ${Math.min(ROUND, p.length)} 字（範圍 ${p.length} 字）`;
+  return mixIn(sample(p, ROUND));
+}
+// 在字與字之間隨機插入標點
+function mixIn(arr) {
+  if (!cfg.mix) return arr.join('');
+  let s = '';
+  arr.forEach((ch, i) => {
+    s += ch;
+    if (i < arr.length - 1 && Math.random() < 0.35) s += MIX_POOL[Math.floor(Math.random() * MIX_POOL.length)];
+  });
+  return s + '。';
+}
+function genPunct() {
+  if (cfg.punctSrc === 'passage') {
+    const p = PASSAGES[Math.floor(Math.random() * PASSAGES.length)];
+    S.title = `文章填標點〈${p.title}〉：文字已打好，只要打出標點`;
+    S.punctOnly = true;
+    return p.text;
+  }
+  S.title = '標點符號練習：可以直接按符號鍵，或打 ZX 開頭的符號碼';
+  let s = '';
+  for (let i = 0; i < ROUND; i++) s += PUNCT_POOL[Math.floor(Math.random() * PUNCT_POOL.length)];
+  return s;
+}
+function genReview() {
+  const list = Object.entries(errBook).sort((a, b) => b[1] - a[1]).map(e => e[0]).slice(0, ROUND);
+  S.title = list.length ? `錯字複習：共 ${Object.keys(errBook).length} 個字待加強（打對一次扣一次紀錄）` : '';
+  return sample(list, list.length).join('');
+}
+function normalizeCustom(t) {
+  const map = { ',': '，', '?': '？', '!': '！', ':': '：', ';': '；', '(': '（', ')': '）',
+    '“': '「', '”': '」', '‘': '『', '’': '』', '⋯': '…', '─': '—', '‧': '·', '．': '。' };
+  return t.replace(/\r/g, '').replace(/[,?!:;()“”‘’⋯─‧．]/g, c => map[c]);
+}
+
+/* ---------- 流程 ---------- */
+function resetStats() { S.typed = 0; S.firstOk = 0; S.errs = 0; S.active = 0; S.last = 0; }
+function setTokens(str, keepStats) {
+  S.tokens = [...str].map(ch => {
+    const given = S.punctOnly && !PINFO.has(ch);
+    return { ch, skip: given || !DICT.has(ch), given, err: 0, peek: false };
+  });
+  S.pos = 0; S.buf = ''; S.done = false;
+  if (!keepStats) resetStats();
+  skipAhead();
+  $('#result').hidden = true;
+  setMsg('');
+  render();
+  if (S.pos >= S.tokens.length) {
+    showResult(S.mode === 'review' ? '目前沒有錯字紀錄，太棒了！<br>先去其他模式練習吧。'
+      : S.mode === 'custom' ? '請在上方貼上要練習的文字，再按「開始練習」。' : '沒有可練習的字。', false);
+  }
+}
+function startMode(keepStats) {
+  const m = cfg.mode;
+  S.mode = m;
+  S.punctOnly = false;
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
+  document.querySelectorAll('.opt[data-for]').forEach(d => { d.hidden = d.dataset.for !== m; });
+  if (m === 'char') setTokens(genChars(), keepStats);
+  else if (m === 'punct') setTokens(genPunct(), keepStats);
+  else if (m === 'review') setTokens(genReview(), keepStats);
+  else if (m === 'text') {
+    const p = PASSAGES[cfg.passage] || PASSAGES[0];
+    S.title = `〈${p.title}〉`;
+    setTokens(p.text, keepStats);
+  } else if (m === 'custom') {
+    S.title = '自訂文字';
+    setTokens(normalizeCustom(store.get('custom', '')), keepStats);
+  }
+}
+function nextRound() {
+  if (S.mode === 'text') {
+    cfg.passage = (cfg.passage + 1) % PASSAGES.length; saveCfg();
+    $('#passage').value = cfg.passage;
+    startMode(false);
+  } else if (S.mode === 'custom') startMode(false);
+  else startMode(true);
+}
+function cur() { return S.tokens[S.pos]; }
+function skipAhead() { while (S.pos < S.tokens.length && S.tokens[S.pos].skip) S.pos++; }
+function codesOf(ch) {
+  if (cfg.mode === 'char' && cfg.range === 'rad' && RAD_CODE[ch]) return [RAD_CODE[ch]];
+  return DICT.get(ch) || [];
+}
+
+function accept(n) {
+  for (let i = 0; i < n && S.pos < S.tokens.length; i++) {
+    const t = S.tokens[S.pos];
+    S.typed++;
+    if (!t.err && !t.peek) { S.firstOk++; decErr(t.ch); }
+    S.pos++;
+    skipAhead();
+  }
+  S.buf = '';
+  setMsg('');
+  if (S.pos >= S.tokens.length) finish();
+  refresh();
+}
+function wrong(text) {
+  const t = cur();
+  t.err++; S.errs++;
+  addErr(t.ch);
+  S.buf = '';
+  setMsg('✗ ' + text);
+  const bar = $('#inputBar');
+  bar.classList.remove('shake'); void bar.offsetWidth; bar.classList.add('shake');
+  refresh();
+}
+function commit() {
+  const t = cur();
+  if (!t || !S.buf) return;
+  if (codesOf(t.ch).includes(S.buf)) {
+    const p = PINFO.get(t.ch);
+    if (p && p.key && cfg.punctWay === 'key') return wrong(`「${t.ch}」請直接按符號鍵：${p.label}`);
+    return accept(1);
+  }
+  const got = (REV.get(S.buf) || [])[0];
+  wrong(got ? `你打出了「${got}」（${S.buf.toUpperCase()}），正確是「${t.ch}」` : `${S.buf.toUpperCase()} 不是有效的倉頡碼`);
+}
+function punctKey(out) {
+  const t = cur();
+  if (!t) return;
+  if (cfg.punctWay === 'code' && PINFO.has(t.ch)) return wrong(`請用符號碼輸入「${t.ch}」：${PINFO.get(t.ch).code.toUpperCase()}`);
+  const slice = S.tokens.slice(S.pos, S.pos + out.length).map(x => x.ch).join('');
+  if (slice === out) return accept(out.length);
+  if (out[0] === t.ch) return accept(1);
+  wrong(`你打出了「${out}」，正確是「${t.ch}」`);
+}
+function finish() {
+  S.done = true;
+  const acc = S.typed ? Math.round(S.firstOk / S.typed * 100) : 100;
+  const spd = S.active > 2000 ? Math.round(S.typed / (S.active / 60000)) : '—';
+  const nextLabel = S.mode === 'text' ? '下一篇' : S.mode === 'custom' ? '再練一次' : '下一回合';
+  showResult(`<div class="big">完成！</div><div>已打 ${S.typed} 字 · 一次打對 ${acc}% · 速度 ${spd} 字/分</div>`, nextLabel);
+}
+function showResult(html, nextLabel) {
+  const r = $('#result');
+  r.innerHTML = html + (nextLabel ? `<div><button class="btn primary" id="nextBtn">${nextLabel}（Enter）</button></div>` : '');
+  r.hidden = false;
+  S.done = true;
+  const b = $('#nextBtn');
+  if (b) b.onclick = () => { b.blur(); nextRound(); };
+}
+
+/* ---------- 畫面 ---------- */
+function keyHtml(c) { return `<span class="k"><b>${RAD[c] || c}</b><i>${c.toUpperCase()}</i></span>`; }
+function render() {
+  const el = $('#text');
+  el.className = (S.mode === 'text' || S.mode === 'custom' || S.punctOnly) ? 'para' : 'grid';
+  el.innerHTML = '';
+  S.spans = S.tokens.map(t => {
+    if (t.ch === '\n') { const br = document.createElement('br'); el.appendChild(br); return null; }
+    const s = document.createElement('span');
+    s.textContent = t.ch;
+    el.appendChild(s);
+    return s;
+  });
+  $('#title').textContent = S.title;
+  refresh();
+}
+function refresh() {
+  S.tokens.forEach((t, i) => {
+    const s = S.spans[i];
+    if (!s) return;
+    let c = '';
+    if (t.given) c = '';
+    else if (t.skip) c = 'skip';
+    else if (i < S.pos) c = t.err ? 'bad' : t.peek ? 'hinted' : 'good';
+    else if (i === S.pos && !S.done) c = 'cur';
+    s.className = c;
+  });
+  const cs = S.spans[S.pos];
+  if (cs && !S.done) cs.scrollIntoView({ block: 'nearest' });
+  updateHint(); updateBuf(); updateKb(); updateStats();
+}
+function hintVisible(t) {
+  if (!t) return false;
+  return t.peek || cfg.hintMode === 'always' || (cfg.hintMode === 'error' && t.err > 0);
+}
+function updateHint() {
+  const t = S.done ? null : cur();
+  $('#hChar').textContent = t ? t.ch : '';
+  const body = $('#hBody');
+  if (!t) { body.innerHTML = ''; return; }
+  if (!hintVisible(t)) { body.innerHTML = '<div class="muted">想不起來？按 <kbd>Tab</kbd> 看提示</div>'; return; }
+  const p = PINFO.get(t.ch);
+  if (p) {
+    if (p.key && cfg.punctWay === 'key') { body.innerHTML = `<div>按鍵：<kbd>${p.label}</kbd></div>`; return; }
+    if (cfg.punctWay === 'code') { body.innerHTML = `<div>打符號碼</div><div class="code">${[...p.code].map(keyHtml).join('')}</div>`; return; }
+    body.innerHTML = (p.key ? `<div>按鍵：<kbd>${p.label}</kbd></div><div class="muted" style="margin-top:6px">或打符號碼</div>` : '<div>打符號碼</div>')
+      + `<div class="code">${[...p.code].map(keyHtml).join('')}</div>`;
+    return;
+  }
+  const codes = codesOf(t.ch);
+  body.innerHTML = codes.map(c => `<div class="code">${[...c].map(keyHtml).join('')}</div>`).join('')
+    + (codes.length > 1 ? '<div class="muted">以上任一種都可以</div>' : '');
+}
+function updateBuf() {
+  const t = cur();
+  const el = $('#buf');
+  el.innerHTML = [...S.buf].map(keyHtml).join('') + '<span class="caret"></span>';
+  const ok = !t || !S.buf || codesOf(t.ch).some(c => c.startsWith(S.buf));
+  el.classList.toggle('wrong', !ok && cfg.hintMode !== 'never');
+  const cands = S.buf ? (REV.get(S.buf) || []) : [];
+  $('#cand').textContent = cands.length ? '候選：' + cands.map((c, i) => `${i + 1}.${c}`).join(' ') : '';
+}
+function setMsg(text, ok) { const m = $('#msg'); m.textContent = text; m.className = ok ? 'ok' : ''; }
+function updateStats() {
+  const acc = S.typed ? Math.round(S.firstOk / S.typed * 100) + '%' : '—';
+  const spd = S.active > 2000 ? Math.round(S.typed / (S.active / 60000)) : '—';
+  const left = S.tokens.slice(S.pos).filter(t => !t.skip).length;
+  $('#stats').innerHTML = `<span>已打 <b>${S.typed}</b> 字</span><span>剩 <b>${left}</b> 字</span>`
+    + `<span>一次打對 <b>${acc}</b></span><span>速度 <b>${spd}</b> 字/分</span><span>錯 <b>${S.errs}</b> 次</span>`
+    + `<span>錯字簿 <b>${Object.keys(errBook).length}</b> 字</span>`;
+}
+const KB_ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
+function buildKb() {
+  const kb = $('#kb');
+  kb.innerHTML = KB_ROWS.map(r => `<div class="row">${[...r].map(c =>
+    `<div class="key" data-k="${c}"><b>${RAD[c] || ''}</b><i>${c.toUpperCase()}</i></div>`).join('')}</div>`).join('')
+    + '<div class="row"><div class="key space" data-k=" ">空白鍵（上字）</div></div>';
+}
+function updateKb() {
+  document.querySelectorAll('#kb .key.next').forEach(k => k.classList.remove('next'));
+  const t = S.done ? null : cur();
+  if (!hintVisible(t)) return;
+  const code = codesOf(t.ch).find(c => c.startsWith(S.buf));
+  if (!code) return;
+  const k = code.length > S.buf.length ? code[S.buf.length] : ' ';
+  const el = document.querySelector(`#kb .key[data-k="${k}"]`);
+  if (el) el.classList.add('next');
+}
+function flashKey(k) {
+  const el = document.querySelector(`#kb .key[data-k="${k}"]`);
+  if (!el) return;
+  el.classList.add('press');
+  setTimeout(() => el.classList.remove('press'), 120);
+}
+
+/* ---------- 鍵盤 ---------- */
+function tick() {
+  const now = performance.now();
+  if (S.last) S.active += Math.min(now - S.last, 5000);
+  S.last = now;
+}
+document.addEventListener('keydown', e => {
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'textarea' || tag === 'input' || tag === 'select') return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.isComposing || e.key === 'Process' || e.keyCode === 229) { $('#imeWarn').hidden = false; return; }
+  $('#imeWarn').hidden = true;
+  const k = e.key;
+
+  if (S.done) {
+    if (k === 'Enter' || k === ' ') { e.preventDefault(); if ($('#nextBtn')) nextRound(); }
+    return;
+  }
+  if (/^[a-zA-Z]$/.test(k)) {
+    e.preventDefault();
+    const c = k.toLowerCase();
+    flashKey(c); tick();
+    if (S.buf.length < 5) S.buf += c;
+    const t = cur();
+    if (cfg.auto && t && codesOf(t.ch).includes(S.buf)) return commit();
+    updateBuf(); updateKb();
+    return;
+  }
+  if (k === 'Backspace') { e.preventDefault(); S.buf = S.buf.slice(0, -1); updateBuf(); updateKb(); return; }
+  if (k === 'Escape') { S.buf = ''; updateBuf(); updateKb(); return; }
+  if (k === 'Tab') {
+    e.preventDefault();
+    const t = cur();
+    if (t) { t.peek = true; refresh(); }
+    return;
+  }
+  if (k === ' ' || k === 'Enter') { e.preventDefault(); flashKey(' '); tick(); commit(); return; }
+  if (KEYOUT[k]) {
+    e.preventDefault(); tick();
+    if (S.buf) { const before = S.pos; commit(); if (S.pos === before || S.done) return; }
+    punctKey(KEYOUT[k]);
+  }
+});
+
+/* ---------- 選項 ---------- */
+function initUi() {
+  const rs = [['rad', `24 個基本字根`], ['100', '最常用 100 字'], ['300', '最常用 300 字'], ['500', '最常用 500 字'],
+    ['1000', '最常用 1000 字'], ['2000', '最常用 2000 字'], ['3000', '最常用 3000 字'],
+    ['lv1', `常用字全部（${LV1.length} 字）`], ['lv2', `次常用字（${LV2.length} 字）`],
+    ['all', `全部繁體字（${LV1.length + LV2.length} 字）`],
+    ['hk1000', '香港字 HKSCS：較常用 1000 字'], ['hk', `香港字 HKSCS 全部（${HK.length} 字）`],
+    ['allhk', `繁體字＋香港字（${LV1.length + LV2.length + HK.length} 字）`]];
+  $('#range').innerHTML = rs.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+  $('#passage').innerHTML = PASSAGES.map((p, i) => `<option value="${i}">${i + 1}. ${p.title}</option>`).join('');
+  $('#range').value = cfg.range; $('#order').value = cfg.order; $('#hintMode').value = cfg.hintMode;
+  $('#auto').checked = cfg.auto; $('#passage').value = cfg.passage;
+  $('#mix').checked = cfg.mix; $('#punctSrc').value = cfg.punctSrc; $('#punctWay').value = cfg.punctWay;
+  const applyTheme = () => {
+    document.body.classList.toggle('dark', cfg.dark);
+    $('#themeBtn').textContent = cfg.dark ? '☀️ 淺色' : '🌙 深色';
+  };
+  applyTheme();
+  $('#themeBtn').onclick = e => { e.target.blur(); cfg.dark = !cfg.dark; saveCfg(); applyTheme(); };
+  $('#customText').value = store.get('custom', '');
+
+  const on = (id, fn) => $(id).addEventListener('change', e => { fn(e.target); saveCfg(); e.target.blur(); });
+  on('#range', el => { cfg.range = el.value; startMode(false); });
+  on('#order', el => { cfg.order = el.value; startMode(false); });
+  on('#passage', el => { cfg.passage = +el.value; startMode(false); });
+  on('#hintMode', el => { cfg.hintMode = el.value; refresh(); });
+  on('#auto', el => { cfg.auto = el.checked; });
+  on('#mix', el => { cfg.mix = el.checked; startMode(false); });
+  on('#punctSrc', el => { cfg.punctSrc = el.value; startMode(false); });
+  on('#punctWay', el => { cfg.punctWay = el.value; refresh(); });
+  $('#restart').onclick = e => { e.target.blur(); startMode(false); };
+  $('#customGo').onclick = e => {
+    e.target.blur();
+    store.set('custom', $('#customText').value);
+    startMode(false);
+  };
+  document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => {
+    b.blur(); cfg.mode = b.dataset.mode; saveCfg(); startMode(false);
+  });
+
+  // 說明表格
+  $('#radTable').innerHTML = RAD_GROUPS.map(([name, ks]) =>
+    `<tr><th>${name}</th>${[...ks].map(c => `<td>${RAD[c]}<br><kbd>${c.toUpperCase()}</kbd></td>`).join('')}</tr>`).join('');
+  $('#punctTable').innerHTML = '<tr><th>符號</th><th>按鍵</th><th>符號碼</th></tr>'
+    + PUNCT.map(([ch, , code, label]) => `<tr><td style="font-size:20px">${ch}</td><td>${label ? `<kbd>${label}</kbd>` : '—'}</td><td>${code.toUpperCase()}</td></tr>`).join('');
+  buildKb();
+}
+
+initUi();
+startMode(false);
+</script>
+</body>
+</html>
