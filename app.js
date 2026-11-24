@@ -87,7 +87,16 @@ for (const [ch, p] of PINFO) {
   if (!REV.has(p.code)) REV.set(p.code, [ch]);
   if (QUICK) { QDICT.set(ch, [p.code]); if (!QREV.has(p.code)) QREV.set(p.code, [ch]); }
 }
-const candList = buf => (QUICK ? QREV : REV).get(buf) || [];
+// 速成另一種候選次序：Big5 內碼次序（接近微軟速成）
+const QREV_B5 = new Map();
+if (QUICK) {
+  const rank = new Map();
+  let i = 0;
+  for (const ch of (window.CJ_B5ORDER || '')) rank.set(ch, i++);
+  const r = ch => rank.has(ch) ? rank.get(ch) : 1e9;
+  for (const [k, v] of QREV) QREV_B5.set(k, PINFO.has(v[0]) ? v : [...v].sort((a, b) => r(a) - r(b)));
+}
+const candList = buf => (QUICK ? (cfg.qorder === 'freq' ? QREV : QREV_B5) : REV).get(buf) || [];
 // 字根練習時只收單碼
 const RAD_CODE = {};
 for (const ch of RAD_CHARS) {
@@ -103,7 +112,7 @@ const store = {
   set(k, v) { try { localStorage.setItem(this.pre + k, JSON.stringify(v)); } catch {} },
 };
 const cfg = Object.assign({ range: '300', order: 'rand', hintMode: 'error', auto: false, passage: 0, mode: 'char',
-  mix: false, punctSrc: 'rand', punctWay: 'any',
+  mix: false, punctSrc: 'rand', punctWay: 'any', qorder: 'big5',
   dark: !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) }, store.get('cfg', {}));
 const errBook = store.get('errors', {});
 const seqPos = store.get('seq', {});
@@ -506,6 +515,10 @@ function initUi() {
   $('#themeBtn').onclick = e => { e.target.blur(); cfg.dark = !cfg.dark; saveCfg(); applyTheme(); };
   $('#customText').value = store.get('custom', '');
   if (QUICK) $('#auto').closest('label').hidden = true;
+  if ($('#qorder')) {
+    $('#qorder').value = cfg.qorder;
+    $('#qorder').addEventListener('change', e => { cfg.qorder = e.target.value; saveCfg(); e.target.blur(); S.buf = ''; S.page = 0; refresh(); });
+  }
 
   const on = (id, fn) => $(id).addEventListener('change', e => { fn(e.target); saveCfg(); e.target.blur(); });
   on('#range', el => { cfg.range = el.value; startMode(false); });

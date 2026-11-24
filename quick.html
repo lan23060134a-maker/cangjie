@@ -48,6 +48,10 @@
         <option value="key">只用符號鍵</option>
         <option value="code">只用符號碼（ZX…）</option>
       </select>
+      候選字次序 <select id="qorder">
+        <option value="big5">微軟速成（Big5 內碼次序）</option>
+        <option value="freq">常用程度（常用字在前）</option>
+      </select>
       <label><input type="checkbox" id="auto"> 自動上字（碼對了不用按空白鍵）</label>
       <button class="btn" id="restart">重新開始</button>
     </div>
@@ -80,7 +84,7 @@
   <details class="card">
     <summary>使用說明、字根表與標點按鍵</summary>
     <p><b>速成取碼：</b>只取倉頡碼的<b>第一碼和最後一碼</b>，最多兩碼。例如：明（日月 AB）→ <kbd>A</kbd><kbd>B</kbd>；倉（人戈日口 OIAR）→ <kbd>O</kbd><kbd>R</kbd>；頡（土口一月金 GRMBC）→ <kbd>G</kbd><kbd>C</kbd>。只有一碼的字（例如「日」）就打一碼。</p>
-    <p><b>怎麼練：</b>打速成碼後，候選字會按常用程度排列：按 <kbd>空白鍵</kbd> 選第 1 個，按 <kbd>1</kbd>–<kbd>9</kbd> 選其他字，按 <kbd>=</kbd>／<kbd>-</kbd>（或 PageDown／PageUp）翻頁。<kbd>Backspace</kbd> 刪一碼，<kbd>Esc</kbd> 清除，<kbd>Tab</kbd> 偷看提示（會顯示速成碼、在第幾個候選，以及完整倉頡碼）。</p>
+    <p><b>怎麼練：</b>打速成碼後，候選字預設按微軟速成的 Big5 內碼次序排列（可在「候選字次序」改成按常用程度）：按 <kbd>空白鍵</kbd> 選第 1 個，按 <kbd>1</kbd>–<kbd>9</kbd> 選其他字，按 <kbd>=</kbd>／<kbd>-</kbd>（或 PageDown／PageUp）翻頁。<kbd>Backspace</kbd> 刪一碼，<kbd>Esc</kbd> 清除，<kbd>Tab</kbd> 偷看提示（會顯示速成碼、在第幾個候選，以及完整倉頡碼）。</p>
     <p><b>注意：</b>練習前請把系統輸入法切成英文，網頁會自己模擬速成。速成版的錯字簿和進度與倉頡版分開記錄。</p>
     <table id="radTable"></table>
     <p><b>標點符號：</b>可以直接按鍵盤上的符號鍵，也可以用倉頡的符號碼（ZX 開頭）輸入。</p>
