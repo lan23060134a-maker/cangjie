@@ -116,7 +116,7 @@ for (const [ch, p] of PINFO) {
   if (QUICK) { QDICT.set(ch, [p.code]); if (!QREV.has(p.code)) QREV.set(p.code, [ch]); }
 }
 // 速成碼與「微軟速成」候選次序：採用傳統速成字表（quick-classic，倉頡三代碼，與微軟速成一致）。
-// 字表沒有的香港字，用倉頡五代碼推出速成碼，按 Big5 內碼次序排在最後。
+// 字表沒有的香港字，用倉頡碼推出速成碼，按 Big5 內碼次序排在最後。
 const QREV_B5 = new Map();
 if (QUICK) {
   const rankOf = list => { const m = new Map(); let i = 0; for (const ch of list) m.set(ch, i++); return ch => m.has(ch) ? m.get(ch) : 1e9; };
@@ -467,7 +467,7 @@ function updateHint() {
     const full = (DICT.get(t.ch) || []).map(c => c.toUpperCase()).join('／');
     body.innerHTML = codes.map(c => `<div class="code">${[...c].map(keyHtml).join('')}</div>`
       + `<div class="muted">候選${placeText(Math.max(0, quickPos(t.ch, c)), c.length)}</div>`).join('')
-      + `<div class="muted" style="margin-top:6px">倉頡碼（五代）：${full}</div>`;
+      + `<div class="muted" style="margin-top:6px">倉頡碼：${full}</div>`;
     return;
   }
   body.innerHTML = codes.map(c => `<div class="code">${[...c].map(keyHtml).join('')}</div>`).join('')
