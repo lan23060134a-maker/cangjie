@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>速成輸入法練習</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>速成輸入法練習<small>（簡易倉頡）</small></h1>
+  <nav id="tabs">
+    <button data-mode="char" class="on">單字練習</button>
+    <button data-mode="text">文章練習</button>
+    <button data-mode="punct">標點符號</button>
+    <button data-mode="review">錯字複習</button>
+    <button data-mode="custom">自訂文字</button>
+  </nav>
+  <button id="themeBtn">🌙 深色</button>
+  <a class="ver" href="index.html">改練倉頡 →</a>
+</header>
+<main>
+  <section id="opts">
+    <div class="opt" data-for="char">
+      範圍 <select id="range"></select>
+      順序 <select id="order"><option value="rand">隨機</option><option value="seq">依常用程度逐個練</option></select>
+      <label><input type="checkbox" id="mix"> 夾雜標點符號</label>
+    </div>
+    <div class="opt" data-for="text">文章 <select id="passage"></select></div>
+    <div class="opt" data-for="punct">
+      練習內容 <select id="punctSrc">
+        <option value="rand">隨機標點符號</option>
+        <option value="passage">文章填標點（文字已打好，只打標點）</option>
+      </select>
+    </div>
+    <div class="opt" data-for="custom" style="flex-direction:column;align-items:stretch">
+      <textarea id="customText" placeholder="貼上你想練習的中文文字（半形標點會自動轉成全形；英文、數字會略過）"></textarea>
+      <div><button class="btn primary" id="customGo">開始練習這段文字</button></div>
+    </div>
+    <div class="opt">
+      提示 <select id="hintMode">
+        <option value="error">打錯才顯示</option>
+        <option value="always">一直顯示</option>
+        <option value="never">不顯示</option>
+      </select>
+      標點輸入方式 <select id="punctWay">
+        <option value="any">按鍵或符號碼都可以</option>
+        <option value="key">只用符號鍵</option>
+        <option value="code">只用符號碼（ZX…）</option>
+      </select>
+      <label><input type="checkbox" id="auto"> 自動上字（碼對了不用按空白鍵）</label>
+      <button class="btn" id="restart">重新開始</button>
+    </div>
+  </section>
+
+  <div id="imeWarn" hidden>偵測到系統輸入法正在使用中。請先切換成英文輸入（例如按 Shift 或 Win + 空白鍵），這個網頁會自己模擬速成輸入。</div>
+
+  <div id="board">
+    <div id="textWrap" class="card">
+      <div id="title"></div>
+      <div id="text"></div>
+      <div id="result" hidden></div>
+    </div>
+    <aside id="hint" class="card">
+      <div id="hChar"></div>
+      <div id="hBody"></div>
+    </aside>
+  </div>
+
+  <div id="inputBar" class="card">
+    <span class="lbl">速成碼</span>
+    <span id="buf"></span>
+    <span id="cand"></span>
+    <span id="msg"></span>
+  </div>
+
+  <div id="stats"></div>
+  <div id="kb"></div>
+
+  <details class="card">
+    <summary>使用說明、字根表與標點按鍵</summary>
+    <p><b>速成取碼：</b>只取倉頡碼的<b>第一碼和最後一碼</b>，最多兩碼。例如：明（日月 AB）→ <kbd>A</kbd><kbd>B</kbd>；倉（人戈日口 OIAR）→ <kbd>O</kbd><kbd>R</kbd>；頡（土口一月金 GRMBC）→ <kbd>G</kbd><kbd>C</kbd>。只有一碼的字（例如「日」）就打一碼。</p>
+    <p><b>怎麼練：</b>打速成碼後，候選字會按常用程度排列：按 <kbd>空白鍵</kbd> 選第 1 個，按 <kbd>1</kbd>–<kbd>9</kbd> 選其他字，按 <kbd>=</kbd>／<kbd>-</kbd>（或 PageDown／PageUp）翻頁。<kbd>Backspace</kbd> 刪一碼，<kbd>Esc</kbd> 清除，<kbd>Tab</kbd> 偷看提示（會顯示速成碼、在第幾個候選，以及完整倉頡碼）。</p>
+    <p><b>注意：</b>練習前請把系統輸入法切成英文，網頁會自己模擬速成。速成版的錯字簿和進度與倉頡版分開記錄。</p>
+    <table id="radTable"></table>
+    <p><b>標點符號：</b>可以直接按鍵盤上的符號鍵，也可以用倉頡的符號碼（ZX 開頭）輸入。</p>
+    <table id="punctTable"></table>
+  </details>
+  <footer>字碼資料：rime-cangjie 倉頡五代字碼表（GPL）；字頻排序：rime-essay。收錄 Big5 常用字、次常用字及香港增補字符集（HKSCS）。部分香港字屬擴展 B 區，需要電腦有對應字型（Windows 內建細明體 ExtB）才能正常顯示。</footer>
+</main>
+
+<script src="cangjie-data.js"></script>
+<script>window.CJ_QUICK_MODE = true;</script>
+<script src="app.js"></script>
+</body>
+</html>
