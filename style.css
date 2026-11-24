@@ -79,6 +79,7 @@
   #cand .cd small { font-size: 12px; color: #90a4ae; margin-right: 2px; }
   #cand .cd.tgt { background: #ffe082; border-radius: 4px; padding: 0 3px; }
   #cand .pg { font-size: 13px; color: #90a4ae; }
+  #cand .cd.foc { outline: 2px solid #4db6ac; border-radius: 4px; }
   .ver { color: #b2dfdb; font-size: 14px; text-decoration: none; border: 1px solid #4db6ac; border-radius: 6px; padding: 5px 12px; }
   .ver:hover { background: #4db6ac; color: #102024; }
   header h1 small { font-size: 13px; font-weight: normal; color: #80cbc4; margin-left: 6px; letter-spacing: 0; }

@@ -118,7 +118,13 @@ const errBook = store.get('errors', {});
 const seqPos = store.get('seq', {});
 const ROUND = 20;
 
-if (QUICK) cfg.auto = false;
+if (QUICK) {
+  cfg.auto = false;
+  if (!['ms', 'key'].includes(cfg.punctWay)) cfg.punctWay = 'ms';
+}
+// 速成版只練鍵盤打得出的標點（〈〉·【】〔〕 在微軟速成要用符號鍵盤）
+const keyable = s => [...s].filter(c => !QUICK || PINFO.get(c).key).join('');
+const P_POOL = keyable(PUNCT_POOL), M_POOL = keyable(MIX_POOL);
 const S = { tokens: [], spans: [], pos: 0, buf: '', page: 0, done: false, title: '',
   typed: 0, firstOk: 0, errs: 0, active: 0, last: 0 };
 
@@ -167,7 +173,7 @@ function mixIn(arr) {
   let s = '';
   arr.forEach((ch, i) => {
     s += ch;
-    if (i < arr.length - 1 && Math.random() < 0.35) s += MIX_POOL[Math.floor(Math.random() * MIX_POOL.length)];
+    if (i < arr.length - 1 && Math.random() < 0.35) s += M_POOL[Math.floor(Math.random() * M_POOL.length)];
   });
   return s + '。';
 }
@@ -178,9 +184,10 @@ function genPunct() {
     S.punctOnly = true;
     return p.text;
   }
-  S.title = '標點符號練習：可以直接按符號鍵，或打 ZX 開頭的符號碼';
+  S.title = QUICK ? '標點符號練習：跟微軟速成一樣，用 Ctrl + 符號鍵，或先按 ` 再按符號鍵'
+    : '標點符號練習：可以直接按符號鍵，或打 ZX 開頭的符號碼';
   let s = '';
-  for (let i = 0; i < ROUND; i++) s += PUNCT_POOL[Math.floor(Math.random() * PUNCT_POOL.length)];
+  for (let i = 0; i < ROUND; i++) s += P_POOL[Math.floor(Math.random() * P_POOL.length)];
   return s;
 }
 function genReview() {
@@ -201,7 +208,7 @@ function setTokens(str, keepStats) {
     const given = S.punctOnly && !PINFO.has(ch);
     return { ch, skip: given || !DICT.has(ch), given, err: 0, peek: false };
   });
-  S.pos = 0; S.buf = ''; S.done = false;
+  S.pos = 0; clearBuf(); S.bq = false; S.done = false;
   if (!keepStats) resetStats();
   skipAhead();
   $('#result').hidden = true;
@@ -246,7 +253,6 @@ function codesOf(ch) {
 }
 // 速成：目標字在某個碼的候選清單中的位置
 function quickPos(ch, code) {
-  if (cfg.mode === 'char' && cfg.range === 'rad' && RAD_CODE[ch] === code) return 0;
   return candList(code).indexOf(ch);
 }
 
@@ -258,7 +264,7 @@ function accept(n) {
     S.pos++;
     skipAhead();
   }
-  S.buf = ''; S.page = 0;
+  clearBuf();
   setMsg('');
   if (S.pos >= S.tokens.length) finish();
   refresh();
@@ -267,7 +273,7 @@ function wrong(text) {
   const t = cur();
   t.err++; S.errs++;
   addErr(t.ch);
-  S.buf = ''; S.page = 0;
+  clearBuf();
   setMsg('✗ ' + text);
   const bar = $('#inputBar');
   bar.classList.remove('shake'); void bar.offsetWidth; bar.classList.add('shake');
@@ -285,27 +291,41 @@ function commit(sel = 0) {
   const got = (REV.get(S.buf) || [])[0];
   wrong(got ? `你打出了「${got}」（${S.buf.toUpperCase()}），正確是「${t.ch}」` : `${S.buf.toUpperCase()} 不是有效的倉頡碼`);
 }
-// 速成：空白鍵選本頁第 1 個，數字鍵選本頁第 n 個
+function clearBuf() { S.buf = ''; S.page = 0; S.focus = 0; S.open = false; }
+// 速成（仿微軟速成）：打滿兩碼自動開候選窗；一碼要按空白鍵開窗。
+// 候選窗開著時：空白鍵＝下一頁，數字鍵選字，Enter 選反白的字，↑↓ 移動反白。
+function quickSpace() {
+  const cands = candList(S.buf);
+  if (!cands.length) return wrong(`${S.buf.toUpperCase()} 不是有效的速成碼`);
+  if (!S.open) { S.open = true; S.page = 0; }
+  else { const pages = Math.ceil(cands.length / PAGE); S.page = (S.page + 1) % pages; }
+  S.focus = 0;
+  updateBuf(); updateKb();
+}
 function commitQuick(t, sel) {
   const cands = candList(S.buf);
   const B = S.buf.toUpperCase();
   if (!cands.length) return wrong(`${B} 不是有效的速成碼`);
-  const got = (cfg.mode === 'char' && cfg.range === 'rad' && RAD_CODE[t.ch] === S.buf && sel === 0 && S.page === 0)
-    ? t.ch : cands[S.page * PAGE + sel];
+  const got = cands[S.page * PAGE + sel];
   if (!got) return;   // 這一頁沒有那麼多候選字，忽略
   if (got === t.ch) return accept(1);
   const idx = cands.indexOf(t.ch);
-  if (idx >= 0) return wrong(`你選了「${got}」。${B} 碼對了，「${t.ch}」在${placeText(idx)}`);
+  if (idx >= 0) return wrong(`你選了「${got}」。${B} 碼對了，「${t.ch}」在${placeText(idx, S.buf.length)}`);
   wrong(`你打出了「${got}」（${B}），正確是「${t.ch}」`);
 }
-function placeText(idx) {
+function placeText(idx, len = 2) {
   const p = Math.floor(idx / PAGE), n = idx % PAGE + 1;
-  return (p ? `第 ${p + 1} 頁的` : '') + `第 ${n} 個` + (idx === 0 ? '（按空白鍵）' : `（按 ${n}${p ? '，先按 = 翻頁' : ''}）`);
+  const keys = (len < 2 ? ['空白鍵開候選'] : []).concat(p ? [`空白鍵翻 ${p} 頁`] : [], [`按 ${n}`]);
+  return (p ? `第 ${p + 1} 頁的` : '') + `第 ${n} 個（${keys.join('，再')}）`;
 }
-function punctKey(out) {
+// 速成版的標點：微軟速成用 Ctrl + 符號鍵，或先按 ` 再按符號鍵
+const msLabel = label => `Ctrl + ${label.replace(/（.*）/, '')}　或　\` 再按 ${label.replace(/（.*）/, '')}`;
+function punctKey(out, via = 'plain') {
   const t = cur();
   if (!t) return;
   if (cfg.punctWay === 'code' && PINFO.has(t.ch)) return wrong(`請用符號碼輸入「${t.ch}」：${PINFO.get(t.ch).code.toUpperCase()}`);
+  if (QUICK && cfg.punctWay === 'ms' && via === 'plain' && PINFO.has(t.ch) && PINFO.get(t.ch).key)
+    return wrong(`微軟速成的全形標點要用 Ctrl 或 \`：「${t.ch}」請按 ${msLabel(PINFO.get(t.ch).label)}`);
   const slice = S.tokens.slice(S.pos, S.pos + out.length).map(x => x.ch).join('');
   if (slice === out) return accept(out.length);
   if (out[0] === t.ch) return accept(1);
@@ -369,6 +389,12 @@ function updateHint() {
   if (!t) { body.innerHTML = ''; return; }
   if (!hintVisible(t)) { body.innerHTML = '<div class="muted">想不起來？按 <kbd>Tab</kbd> 看提示</div>'; return; }
   const p = PINFO.get(t.ch);
+  if (p && QUICK && p.key) {
+    body.innerHTML = cfg.punctWay === 'ms'
+      ? `<div><kbd>Ctrl</kbd> + <kbd>${p.label}</kbd></div><div class="muted" style="margin-top:6px">或先按 <kbd>\`</kbd> 再按 <kbd>${p.label}</kbd></div>`
+      : `<div>按鍵：<kbd>${p.label}</kbd></div><div class="muted" style="margin-top:6px">（也可以用 Ctrl + 符號鍵）</div>`;
+    return;
+  }
   if (p) {
     if (p.key && cfg.punctWay === 'key') { body.innerHTML = `<div>按鍵：<kbd>${p.label}</kbd></div>`; return; }
     if (cfg.punctWay === 'code') { body.innerHTML = `<div>打符號碼</div><div class="code">${[...p.code].map(keyHtml).join('')}</div>`; return; }
@@ -380,7 +406,7 @@ function updateHint() {
   if (QUICK) {
     const full = (DICT.get(t.ch) || []).map(c => c.toUpperCase()).join('／');
     body.innerHTML = codes.map(c => `<div class="code">${[...c].map(keyHtml).join('')}</div>`
-      + `<div class="muted">候選${placeText(Math.max(0, quickPos(t.ch, c)))}</div>`).join('')
+      + `<div class="muted">候選${placeText(Math.max(0, quickPos(t.ch, c)), c.length)}</div>`).join('')
       + `<div class="muted" style="margin-top:6px">完整倉頡碼：${full}</div>`;
     return;
   }
@@ -394,16 +420,21 @@ function updateBuf() {
   const ok = !t || !S.buf || codesOf(t.ch).some(c => c.startsWith(S.buf));
   el.classList.toggle('wrong', !ok && cfg.hintMode !== 'never');
   const cands = S.buf ? candList(S.buf) : [];
+  if (QUICK && S.bq) { $('#cand').innerHTML = '<span class="pg">已按 ` ，再按符號鍵輸入全形標點</span>'; return; }
   if (!QUICK || (t && PINFO.has(t.ch))) {
     $('#cand').textContent = cands.length ? '候選：' + cands.slice(0, 6).map((c, i) => `${i + 1}.${c}`).join(' ') : '';
     return;
   }
   const pages = Math.ceil(cands.length / PAGE);
   const show = hintVisible(t);
+  if (!S.open) {
+    $('#cand').innerHTML = S.buf && cands.length ? '<span class="pg">按 <kbd>空白鍵</kbd> 開啟候選字</span>' : '';
+    return;
+  }
   $('#cand').innerHTML = cands.length
     ? cands.slice(S.page * PAGE, S.page * PAGE + PAGE)
-        .map((c, i) => `<span class="cd${show && c === t.ch ? ' tgt' : ''}"><small>${i + 1}</small>${c}</span>`).join('')
-      + (pages > 1 ? `<span class="pg">${S.page + 1}/${pages} 頁　<kbd>-</kbd><kbd>=</kbd> 翻頁</span>` : '')
+        .map((c, i) => `<span class="cd${show && c === t.ch ? ' tgt' : ''}${i === S.focus ? ' foc' : ''}"><small>${i + 1}</small>${c}</span>`).join('')
+      + `<span class="pg">${pages > 1 ? `${S.page + 1}/${pages} 頁　<kbd>空白鍵</kbd> 下一頁　` : ''}<kbd>數字</kbd> 或 <kbd>Enter</kbd> 選字</span>`
     : '';
 }
 function setMsg(text, ok) { const m = $('#msg'); m.textContent = text; m.className = ok ? 'ok' : ''; }
@@ -420,7 +451,7 @@ function buildKb() {
   const kb = $('#kb');
   kb.innerHTML = KB_ROWS.map(r => `<div class="row">${[...r].map(c =>
     `<div class="key" data-k="${c}"><b>${RAD[c] || ''}</b><i>${c.toUpperCase()}</i></div>`).join('')}</div>`).join('')
-    + '<div class="row"><div class="key space" data-k=" ">空白鍵（上字）</div></div>';
+    + `<div class="row"><div class="key space" data-k=" ">${QUICK ? '空白鍵（開候選／下一頁）' : '空白鍵（上字）'}</div></div>`;
 }
 function updateKb() {
   document.querySelectorAll('#kb .key.next').forEach(k => k.classList.remove('next'));
@@ -429,7 +460,8 @@ function updateKb() {
   const code = codesOf(t.ch).find(c => c.startsWith(S.buf));
   if (!code) return;
   let k = code.length > S.buf.length ? code[S.buf.length] : ' ';
-  if (QUICK && k === ' ' && !PINFO.has(t.ch) && quickPos(t.ch, code) !== 0) return;   // 要用數字鍵選字
+  // 速成：候選窗沒開或目標在後面的頁 → 提示空白鍵；已在本頁 → 用數字鍵，不亮鍵
+  if (QUICK && k === ' ' && !PINFO.has(t.ch) && S.open && Math.floor(quickPos(t.ch, code) / PAGE) === S.page) return;
   const el = document.querySelector(`#kb .key[data-k="${k}"]`);
   if (el) el.classList.add('next');
 }
@@ -449,14 +481,30 @@ function tick() {
 document.addEventListener('keydown', e => {
   const tag = (e.target.tagName || '').toLowerCase();
   if (tag === 'textarea' || tag === 'input' || tag === 'select') return;
-  if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.isComposing || e.key === 'Process' || e.keyCode === 229) { $('#imeWarn').hidden = false; return; }
-  $('#imeWarn').hidden = true;
   const k = e.key;
+  // 速成版：Ctrl + 符號鍵 → 全形標點（同微軟速成）
+  if (QUICK && e.ctrlKey && !e.altKey && !e.metaKey && KEYOUT[k] && !S.done) {
+    e.preventDefault(); tick();
+    if (S.buf) return setMsg('請先選字，或按 Esc 取消輸入碼');
+    S.bq = false;
+    return punctKey(KEYOUT[k], 'ms');
+  }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  $('#imeWarn').hidden = true;
 
   if (S.done) {
     if (k === 'Enter' || k === ' ') { e.preventDefault(); if ($('#nextBtn')) nextRound(); }
     return;
+  }
+  // 速成版：先按 ` 再按符號鍵 → 全形標點
+  if (QUICK && k === '`' && !S.buf) { e.preventDefault(); S.bq = !S.bq; updateBuf(); return; }
+  if (QUICK && S.bq) {
+    if (k === 'Shift') return;
+    S.bq = false;
+    if (KEYOUT[k]) { e.preventDefault(); tick(); return punctKey(KEYOUT[k], 'ms'); }
+    updateBuf();
+    if (k === 'Escape') return;
   }
   if (/^[a-zA-Z]$/.test(k)) {
     e.preventDefault();
@@ -464,22 +512,40 @@ document.addEventListener('keydown', e => {
     flashKey(c); tick();
     // 速成最多兩碼（Z 開頭的符號碼除外）
     const max = QUICK && S.buf[0] !== 'z' && c !== 'z' ? 2 : 5;
-    if (S.buf.length < max) { S.buf += c; S.page = 0; }
+    if (S.buf.length < max) { S.buf += c; S.page = 0; S.focus = 0; }
+    if (QUICK && S.buf.length === 2 && S.buf[0] !== 'z') S.open = true;   // 打滿兩碼自動開候選窗
     const t = cur();
     if (cfg.auto && t && codesOf(t.ch).includes(S.buf)) return commit();
     updateBuf(); updateKb();
     return;
   }
-  if (QUICK && S.buf && /^[1-9]$/.test(k)) { e.preventDefault(); tick(); commit(+k - 1); return; }
-  if (QUICK && S.buf && ['=', '-', 'PageDown', 'PageUp', 'ArrowRight', 'ArrowLeft'].includes(k)) {
-    e.preventDefault();
-    const pages = Math.ceil(candList(S.buf).length / PAGE);
-    S.page = (k === '=' || k === 'PageDown' || k === 'ArrowRight') ? Math.min(S.page + 1, pages - 1) : Math.max(S.page - 1, 0);
-    updateBuf();
-    return;
+  if (QUICK && S.buf && S.open) {
+    const cands = candList(S.buf);
+    const onPage = Math.min(PAGE, cands.length - S.page * PAGE);
+    if (/^[1-9]$/.test(k)) { e.preventDefault(); tick(); commit(+k - 1); return; }
+    if (k === 'Enter') { e.preventDefault(); tick(); commit(S.focus); return; }
+    if (k === 'ArrowDown' || k === 'ArrowUp') {
+      e.preventDefault();
+      S.focus = (S.focus + (k === 'ArrowDown' ? 1 : onPage - 1)) % onPage;
+      updateBuf(); return;
+    }
+    if (k === 'PageDown' || k === 'PageUp') {
+      e.preventDefault();
+      const pages = Math.ceil(cands.length / PAGE);
+      S.page = (S.page + (k === 'PageDown' ? 1 : pages - 1)) % pages; S.focus = 0;
+      updateBuf(); updateKb(); return;
+    }
   }
-  if (k === 'Backspace') { e.preventDefault(); S.buf = S.buf.slice(0, -1); S.page = 0; updateBuf(); updateKb(); return; }
-  if (k === 'Escape') { S.buf = ''; S.page = 0; updateBuf(); updateKb(); return; }
+  if (QUICK && S.buf && k === ' ') {
+    const t = cur();
+    if (!(t && PINFO.has(t.ch))) { e.preventDefault(); flashKey(' '); tick(); quickSpace(); return; }
+  }
+  if (k === 'Backspace') {
+    e.preventDefault(); S.buf = S.buf.slice(0, -1); S.page = 0; S.focus = 0;
+    S.open = QUICK && S.buf.length === 2;
+    updateBuf(); updateKb(); return;
+  }
+  if (k === 'Escape') { clearBuf(); updateBuf(); updateKb(); return; }
   if (k === 'Tab') {
     e.preventDefault();
     const t = cur();
@@ -489,6 +555,7 @@ document.addEventListener('keydown', e => {
   if (k === ' ' || k === 'Enter') { e.preventDefault(); flashKey(' '); tick(); commit(); return; }
   if (KEYOUT[k]) {
     e.preventDefault(); tick();
+    if (QUICK && S.buf) return setMsg('請先選字，或按 Esc 取消輸入碼');
     if (S.buf) { const before = S.pos; commit(); if (S.pos === before || S.done) return; }
     punctKey(KEYOUT[k]);
   }
@@ -542,7 +609,9 @@ function initUi() {
   // 說明表格
   $('#radTable').innerHTML = RAD_GROUPS.map(([name, ks]) =>
     `<tr><th>${name}</th>${[...ks].map(c => `<td>${RAD[c]}<br><kbd>${c.toUpperCase()}</kbd></td>`).join('')}</tr>`).join('');
-  $('#punctTable').innerHTML = '<tr><th>符號</th><th>按鍵</th><th>符號碼</th></tr>'
+  if (QUICK) $('#punctTable').innerHTML = '<tr><th>符號</th><th>微軟速成按法</th></tr>'
+    + PUNCT.filter(p => p[1]).map(([ch, , , label]) => `<tr><td style="font-size:20px">${ch}</td><td>${msLabel(label)}</td></tr>`).join('');
+  else $('#punctTable').innerHTML = '<tr><th>符號</th><th>按鍵</th><th>符號碼</th></tr>'
     + PUNCT.map(([ch, , code, label]) => `<tr><td style="font-size:20px">${ch}</td><td>${label ? `<kbd>${label}</kbd>` : '—'}</td><td>${code.toUpperCase()}</td></tr>`).join('');
   buildKb();
 }
