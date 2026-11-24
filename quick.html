@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>速成輸入法練習</title>
-<link rel="stylesheet" href="style.css?v=20261124c">
+<link rel="stylesheet" href="style.css?v=20261124d">
 </head>
 <body>
 <header>
@@ -44,8 +44,8 @@
         <option value="never">不顯示</option>
       </select>
       標點輸入方式 <select id="punctWay">
-        <option value="ms">同微軟速成（Ctrl 或 ` + 符號鍵）</option>
-        <option value="key">直接按符號鍵也可以（較簡單）</option>
+        <option value="key">直接按符號鍵（Ctrl／` + 符號鍵也可以）</option>
+        <option value="ms">只用 Ctrl 或 ` + 符號鍵</option>
       </select>
       候選字次序 <select id="qorder">
         <option value="big5">微軟速成（Big5 內碼次序）</option>
@@ -83,18 +83,18 @@
   <details class="card">
     <summary>使用說明、字根表與標點按鍵</summary>
     <p><b>速成取碼：</b>只取倉頡碼的<b>第一碼和最後一碼</b>，最多兩碼。例如：明（日月 AB）→ <kbd>A</kbd><kbd>B</kbd>；倉（人戈日口 OIAR）→ <kbd>O</kbd><kbd>R</kbd>；頡（土口一月金 GRMBC）→ <kbd>G</kbd><kbd>C</kbd>。只有一碼的字（例如「日」）就打一碼。</p>
-    <p><b>怎麼練（按鍵與微軟速成相同）：</b>打滿兩碼會自動開啟候選字（只有一碼的字要按 <kbd>空白鍵</kbd> 開啟）。候選字開著時：<kbd>1</kbd>–<kbd>9</kbd> 選字，<kbd>空白鍵</kbd> 下一頁，<kbd>↑</kbd><kbd>↓</kbd> 移動反白、<kbd>Enter</kbd> 選反白的字。候選字預設按微軟速成的 Big5 內碼次序排列（可在「候選字次序」改成按常用程度）。<kbd>Backspace</kbd> 刪一碼，<kbd>Esc</kbd> 取消，<kbd>Tab</kbd> 偷看提示（微軟速成的 Tab 是展開表格，這裡改作提示）。</p>
-    <p><b>標點符號：</b>跟微軟速成一樣，全形標點用 <kbd>Ctrl</kbd> + 符號鍵（例如 <kbd>Ctrl</kbd> + <kbd>,</kbd> 出「，」），或先按 <kbd>`</kbd> 再按符號鍵。如果覺得太難，可以在「標點輸入方式」改成直接按符號鍵。</p>
+    <p><b>怎麼練（按鍵與微軟速成相同）：</b>打滿兩碼會自動開啟候選字（只有一碼的字要按 <kbd>空白鍵</kbd> 開啟）。候選字開著時：<kbd>1</kbd>–<kbd>9</kbd> 選字，<kbd>空白鍵</kbd> 下一頁，<kbd>↑</kbd><kbd>↓</kbd> 移動反白、<kbd>Enter</kbd> 選反白的字。速成碼和候選字次序預設跟微軟速成一樣（採用倉頡三代碼的傳統速成字表）（可在「候選字次序」改成按常用程度）。<kbd>Backspace</kbd> 刪一碼，<kbd>Esc</kbd> 取消，<kbd>Tab</kbd> 偷看提示（微軟速成的 Tab 是展開表格，這裡改作提示）。</p>
+    <p><b>標點符號：</b>直接按符號鍵就會出全形標點，一個鍵就好，例如 <kbd>,</kbd> 出「，」、<kbd>Shift</kbd> + <kbd>/</kbd> 出「？」。也可以用 <kbd>Ctrl</kbd> + 符號鍵，或先按 <kbd>`</kbd> 再按符號鍵。</p>
     <p><b>注意：</b>練習前請把系統輸入法切成英文，網頁會自己模擬速成。速成版的錯字簿和進度與倉頡版分開記錄。</p>
     <table id="radTable"></table>
     <p><b>標點按鍵表：</b></p>
     <table id="punctTable"></table>
   </details>
-  <footer>字碼資料：rime-cangjie 倉頡五代字碼表（GPL）；字頻排序：rime-essay。收錄 Big5 常用字、次常用字及香港增補字符集（HKSCS）。部分香港字屬擴展 B 區，需要電腦有對應字型（Windows 內建細明體 ExtB）才能正常顯示。</footer>
+  <footer>字碼資料：rime-cangjie 倉頡五代字碼表（GPL）；字頻排序：rime-essay；速成碼與候選次序：quick-classic 傳統速成字表（ibus-table-chinese，源自 xcin，GPL）。收錄 Big5 常用字、次常用字及香港增補字符集（HKSCS）。部分香港字屬擴展 B 區，需要電腦有對應字型（Windows 內建細明體 ExtB）才能正常顯示。</footer>
 </main>
 
-<script src="cangjie-data.js?v=20261124c"></script>
+<script src="cangjie-data.js?v=20261124d"></script>
 <script>window.CJ_QUICK_MODE = true;</script>
-<script src="app.js?v=20261124c"></script>
+<script src="app.js?v=20261124d"></script>
 </body>
 </html>

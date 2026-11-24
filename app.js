@@ -87,14 +87,36 @@ for (const [ch, p] of PINFO) {
   if (!REV.has(p.code)) REV.set(p.code, [ch]);
   if (QUICK) { QDICT.set(ch, [p.code]); if (!QREV.has(p.code)) QREV.set(p.code, [ch]); }
 }
-// 速成另一種候選次序：Big5 內碼次序（接近微軟速成）
+// 速成碼與「微軟速成」候選次序：採用傳統速成字表（quick-classic，倉頡三代碼，與微軟速成一致）。
+// 字表沒有的香港字，用倉頡五代碼推出速成碼，按 Big5 內碼次序排在最後。
 const QREV_B5 = new Map();
 if (QUICK) {
-  const rank = new Map();
-  let i = 0;
-  for (const ch of (window.CJ_B5ORDER || '')) rank.set(ch, i++);
-  const r = ch => rank.has(ch) ? rank.get(ch) : 1e9;
-  for (const [k, v] of QREV) QREV_B5.set(k, PINFO.has(v[0]) ? v : [...v].sort((a, b) => r(a) - r(b)));
+  const rankOf = list => { const m = new Map(); let i = 0; for (const ch of list) m.set(ch, i++); return ch => m.has(ch) ? m.get(ch) : 1e9; };
+  const b5 = rankOf(window.CJ_B5ORDER || '');
+  const fq = rankOf(LV1.concat(LV2, HK));
+  if (window.CJ_QC) {
+    const msDict = new Map();
+    for (const tok of window.CJ_QC.split(' ')) {
+      const code = /^[a-y]+/.exec(tok)[0];
+      const chars = [...tok.slice(code.length)];
+      QREV_B5.set(code, chars);
+      for (const ch of chars) { if (!msDict.has(ch)) msDict.set(ch, []); msDict.get(ch).push(code); }
+    }
+    const extra = new Map();
+    for (const [ch, qs] of QDICT) {
+      if (msDict.has(ch) || PINFO.has(ch)) continue;
+      msDict.set(ch, qs);
+      for (const q of qs) { if (!extra.has(q)) extra.set(q, []); extra.get(q).push(ch); }
+    }
+    for (const [q, list] of extra) QREV_B5.set(q, (QREV_B5.get(q) || []).concat(list.sort((a, b) => b5(a) - b5(b))));
+    for (const [ch, p] of PINFO) { msDict.set(ch, [p.code]); if (!QREV_B5.has(p.code)) QREV_B5.set(p.code, [ch]); }
+    QDICT.clear(); for (const [ch, qs] of msDict) QDICT.set(ch, qs);
+  } else {
+    for (const [k, v] of QREV) QREV_B5.set(k, PINFO.has(v[0]) ? v : [...v].sort((a, b) => b5(a) - b5(b)));
+  }
+  // 「常用程度」次序：同一組候選字，改按字頻排列
+  QREV.clear();
+  for (const [k, v] of QREV_B5) QREV.set(k, PINFO.has(v[0]) ? v : [...v].sort((a, b) => fq(a) - fq(b)));
 }
 const candList = buf => (QUICK ? (cfg.qorder === 'freq' ? QREV : QREV_B5) : REV).get(buf) || [];
 // 字根練習時只收單碼
@@ -120,7 +142,9 @@ const ROUND = 20;
 
 if (QUICK) {
   cfg.auto = false;
-  if (!['ms', 'key'].includes(cfg.punctWay)) cfg.punctWay = 'ms';
+  // 速成版標點預設「直接按符號鍵」（一鍵出全形標點；Ctrl / ` + 符號鍵也接受）
+  if (cfg.qpunctVer !== 2) { cfg.punctWay = 'key'; cfg.qpunctVer = 2; }
+  if (!['ms', 'key'].includes(cfg.punctWay)) cfg.punctWay = 'key';
 }
 // 速成版只練鍵盤打得出的標點（〈〉·【】〔〕 在微軟速成要用符號鍵盤）
 const keyable = s => [...s].filter(c => !QUICK || PINFO.get(c).key).join('');
@@ -184,7 +208,7 @@ function genPunct() {
     S.punctOnly = true;
     return p.text;
   }
-  S.title = QUICK ? '標點符號練習：跟微軟速成一樣，用 Ctrl + 符號鍵，或先按 ` 再按符號鍵'
+  S.title = QUICK ? '標點符號練習：直接按符號鍵（也可以用 Ctrl + 符號鍵，或先按 ` 再按符號鍵）'
     : '標點符號練習：可以直接按符號鍵，或打 ZX 開頭的符號碼';
   let s = '';
   for (let i = 0; i < ROUND; i++) s += P_POOL[Math.floor(Math.random() * P_POOL.length)];
@@ -407,7 +431,7 @@ function updateHint() {
     const full = (DICT.get(t.ch) || []).map(c => c.toUpperCase()).join('／');
     body.innerHTML = codes.map(c => `<div class="code">${[...c].map(keyHtml).join('')}</div>`
       + `<div class="muted">候選${placeText(Math.max(0, quickPos(t.ch, c)), c.length)}</div>`).join('')
-      + `<div class="muted" style="margin-top:6px">完整倉頡碼：${full}</div>`;
+      + `<div class="muted" style="margin-top:6px">倉頡碼（五代）：${full}</div>`;
     return;
   }
   body.innerHTML = codes.map(c => `<div class="code">${[...c].map(keyHtml).join('')}</div>`).join('')
@@ -609,8 +633,8 @@ function initUi() {
   // 說明表格
   $('#radTable').innerHTML = RAD_GROUPS.map(([name, ks]) =>
     `<tr><th>${name}</th>${[...ks].map(c => `<td>${RAD[c]}<br><kbd>${c.toUpperCase()}</kbd></td>`).join('')}</tr>`).join('');
-  if (QUICK) $('#punctTable').innerHTML = '<tr><th>符號</th><th>微軟速成按法</th></tr>'
-    + PUNCT.filter(p => p[1]).map(([ch, , , label]) => `<tr><td style="font-size:20px">${ch}</td><td>${msLabel(label)}</td></tr>`).join('');
+  if (QUICK) $('#punctTable').innerHTML = '<tr><th>符號</th><th>直接按</th><th>或</th></tr>'
+    + PUNCT.filter(p => p[1]).map(([ch, , , label]) => `<tr><td style="font-size:20px">${ch}</td><td><kbd>${label}</kbd></td><td>${msLabel(label)}</td></tr>`).join('');
   else $('#punctTable').innerHTML = '<tr><th>符號</th><th>按鍵</th><th>符號碼</th></tr>'
     + PUNCT.map(([ch, , code, label]) => `<tr><td style="font-size:20px">${ch}</td><td>${label ? `<kbd>${label}</kbd>` : '—'}</td><td>${code.toUpperCase()}</td></tr>`).join('');
   buildKb();
