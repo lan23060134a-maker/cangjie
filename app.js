@@ -11,6 +11,34 @@ const RAD = { a:'日', b:'月', c:'金', d:'木', e:'水', f:'火', g:'土', h:'
 const RAD_GROUPS = [['哲理類','abcdefg'], ['筆畫類','hijklmn'], ['人體類','opqr'], ['字形類','stuvwy'], ['特別鍵','xz']];
 const RAD_CHARS = '日月金木水火土竹戈十大中一弓人心手口尸廿山女田卜';
 
+// 字形表：[鍵, 代表意思, 這個鍵還代表的字形（輔助字形）, 例字]
+const SHAPES = [
+  ['a', '日', '日、曰；也包括橫躺的日（如「巴」「眉」「象」裡的形狀）', '明早書冒巴眉'],
+  ['b', '月', '月、⺼；冂形外框（同、用、骨）；爫（受、采、愛）', '肝同用骨受采'],
+  ['c', '金', '金；兩點「丷」「八」（弟、丫、业）；儿形（只、谷）；四、西中間的形狀', '銅弟只谷四西'],
+  ['d', '木', '木；豎鈎形（才、子、乎）；也、皮中的部分筆畫', '相東才子也皮'],
+  ['e', '水', '水、氵；又形（支、及、叉）；求、錄的下部', '河冰支及求錄'],
+  ['f', '火', '火、灬；小、⺌（尚、示的下部）；米', '灰照鳥尚示不'],
+  ['g', '土', '土、士', '走里吉仕動球'],
+  ['h', '竹（斜）', '竹、⺮；撇「丿」', '竺簡千白牛反'],
+  ['i', '戈（點）', '戈；點「丶」；厶（台、去、充）', '我戒之台去庫'],
+  ['j', '十（交）', '十；宀（安、宋、空）', '古車安宋刊空'],
+  ['k', '大（叉）', '大；叉「乂」；ナ（右、九）；疒', '奇右九文病狗'],
+  ['l', '中（縱）', '中；豎「丨」；衤', '忠史川引衫事'],
+  ['m', '一（橫）', '一；橫；厂（原、歷）', '天旦原石百功'],
+  ['n', '弓（鉤）', '弓；鉤「亅」「乙」；⺈（色、危）；夕', '弦了丁今色夕'],
+  ['o', '人', '人、亻；𠂉 一類的形狀（氣、海、知的上部）', '仁氣海知夫以'],
+  ['p', '心', '心、忄；匕、七（旨、化、切）', '思怕恭旨化切'],
+  ['q', '手', '手、扌；看、夫中的「𡗗」形；羊、年的下部', '拿打看夫羊年'],
+  ['r', '口', '口', '吹石區官吉品'],
+  ['s', '尸（側）', '尸、戶；刀、力等側邊帶鈎的形狀；臣', '尺局司刀力臣'],
+  ['t', '廿（並）', '廿、艹；共、其、昔的上部；並', '甘革昔共其並'],
+  ['u', '山（仰）', '山；凵、乚（凶、孔、光）；己、巳的下部', '仙幽凶孔光己'],
+  ['v', '女（紐）', '女；糸、衣、表的下部；民、氏、以的鈎形', '好威糸衣民互'],
+  ['w', '田（方）', '田；囗（國、回）', '畢車國黑母回'],
+  ['y', '卜', '卜、⺊；亠（文、亡、言）；辶（連、追）', '下外上文言連'],
+];
+
 // [符號, 鍵盤按鍵, 倉頡符號碼, 按鍵說明]
 const PUNCT = [
   ['，', ',', 'zxab', ','], ['、', '\\', 'zxac', '\\'], ['。', '.', 'zxad', '.'],
@@ -649,6 +677,48 @@ function initUi() {
   else $('#punctTable').innerHTML = '<tr><th>符號</th><th>按鍵</th><th>符號碼</th></tr>'
     + PUNCT.map(([ch, , code, label]) => `<tr><td style="font-size:20px">${ch}</td><td>${label ? `<kbd>${label}</kbd>` : '—'}</td><td>${code.toUpperCase()}</td></tr>`).join('');
   buildKb();
+  buildShapes();
+}
+
+/* ---------- 字形表與查字 ---------- */
+function lookupHtml(ch) {
+  const cs = DICT.get(ch);
+  if (!cs) return `<div class="lk"><span class="lkc">${ch}</span><span class="muted">字表裡沒有這個字</span></div>`;
+  const rows = cs.map(c => `<div class="code">${[...c].map(keyHtml).join('')}</div>`).join('');
+  let q = '';
+  if (QUICK) {
+    q = (QDICT.get(ch) || []).map(qc => {
+      const i = quickPos(ch, qc);
+      return `<div>速成：<b>${qc.toUpperCase()}</b>${i >= 0 ? `，第 ${Math.floor(i / PAGE) + 1} 頁第 ${i % PAGE + 1} 個` : ''}</div>`;
+    }).join('');
+  }
+  return `<div class="lk"><span class="lkc">${ch}</span><div>${rows}<div class="muted">倉頡碼：${cs.map(c => c.toUpperCase()).join(' 或 ')}</div>${q}</div></div>`;
+}
+function showLookup(s) {
+  const chars = [...s].filter(ch => /\S/.test(ch) && !/[a-zA-Z0-9]/.test(ch)).slice(0, 12);
+  $('#lookOut').innerHTML = chars.length ? chars.map(lookupHtml).join('')
+    : '<span class="muted">輸入中文字（可一次查多個），就會顯示拆法。</span>';
+}
+function buildShapes() {
+  $('#shapeGrid').innerHTML = SHAPES.map(([k, name, note, ex]) =>
+    `<div class="shp"><div class="shk"><b>${RAD[k]}</b><kbd>${k.toUpperCase()}</kbd></div>` +
+    `<div class="shn">${name}</div><div class="shd">${note}</div>` +
+    `<div class="shx">${[...ex].map(ch => `<button type="button" data-ch="${ch}">${ch}</button>`).join('')}</div></div>`).join('') +
+    `<div class="shp"><div class="shk"><b>難</b><kbd>X</kbd></div><div class="shn">難（特別鍵）</div>` +
+    `<div class="shd">拆不出來的特殊字形用 X，例如「臼」打 竹難（HX）。</div></div>` +
+    `<div class="shp"><div class="shk"><b>重</b><kbd>Z</kbd></div><div class="shn">重（特別鍵）</div>` +
+    `<div class="shd">${QUICK ? '速成版用 Z＋1碼 打標點符號，例如「，」打 ZB 再選 1。' : '用來打符號：ZX 開頭，例如「，」打 ZXAB。'}</div></div>`;
+  $('#shapeGrid').onclick = e => {
+    const b = e.target.closest('button[data-ch]');
+    if (!b) return;
+    b.blur();
+    $('#lookIn').value = b.dataset.ch;
+    showLookup(b.dataset.ch);
+    $('#lookIn').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  };
+  $('#lookIn').oninput = e => showLookup(e.target.value);
+  $('#lookIn').onkeydown = e => { if (e.key === 'Escape') e.target.blur(); };
+  showLookup('');
 }
 
 initUi();

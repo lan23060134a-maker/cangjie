@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>倉頡輸入法練習</title>
-<link rel="stylesheet" href="style.css?v=20261124c">
+<link rel="stylesheet" href="style.css?v=20261125a">
 </head>
 <body>
 <header>
@@ -77,6 +77,14 @@
   <div id="stats"></div>
   <div id="kb"></div>
 
+  <details id="shapeCard" class="card">
+    <summary>字形表（新手入門）：每個鍵代表甚麼字形 ＋ 查字拆法</summary>
+    <p>倉頡把字拆成字形，每個字形對應一個英文鍵。下面每格列出一個鍵代表的字形，還有幾個<b>例字</b>，按例字就能看到它的拆法。</p>
+    <div class="look">查字：<input id="lookIn" type="text" placeholder="輸入想查的中文字，例如：倉頡" autocomplete="off"></div>
+    <div id="lookOut"></div>
+    <div id="shapeGrid"></div>
+  </details>
+
   <details class="card">
     <summary>使用說明、字根表與標點按鍵</summary>
     <p><b>怎麼練：</b>用英文鍵盤直接打倉頡碼（例如「明」打 <kbd>A</kbd><kbd>B</kbd>），再按 <kbd>空白鍵</kbd> 上字。<kbd>Backspace</kbd> 刪一碼，<kbd>Esc</kbd> 清除，<kbd>Tab</kbd> 偷看提示。打錯時會告訴你打出了哪個字，並顯示正確拆法；打錯的字會記到「錯字複習」。</p>
@@ -89,7 +97,7 @@
   <footer>字碼資料：rime-cangjie 倉頡五代字碼表（GPL）；字頻排序：rime-essay。收錄 Big5 常用字、次常用字及香港增補字符集（HKSCS）。部分香港字屬擴展 B 區，需要電腦有對應字型（Windows 內建細明體 ExtB）才能正常顯示。</footer>
 </main>
 
-<script src="cangjie-data.js?v=20261124c"></script>
-<script src="app.js?v=20261124c"></script>
+<script src="cangjie-data.js?v=20261125a"></script>
+<script src="app.js?v=20261125a"></script>
 </body>
 </html>

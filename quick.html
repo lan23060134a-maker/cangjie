@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>速成輸入法練習</title>
-<link rel="stylesheet" href="style.css?v=20261124e">
+<link rel="stylesheet" href="style.css?v=20261125a">
 </head>
 <body>
 <header>
@@ -81,6 +81,14 @@
   <div id="stats"></div>
   <div id="kb"></div>
 
+  <details id="shapeCard" class="card">
+    <summary>字形表（新手入門）：每個鍵代表甚麼字形 ＋ 查字拆法</summary>
+    <p>倉頡把字拆成字形，每個字形對應一個英文鍵。下面每格列出一個鍵代表的字形，還有幾個<b>例字</b>，按例字就能看到它的拆法。</p>
+    <div class="look">查字：<input id="lookIn" type="text" placeholder="輸入想查的中文字，例如：倉頡" autocomplete="off"></div>
+    <div id="lookOut"></div>
+    <div id="shapeGrid"></div>
+  </details>
+
   <details class="card">
     <summary>使用說明、字根表與標點按鍵</summary>
     <p><b>速成取碼：</b>只取倉頡碼的<b>第一碼和最後一碼</b>，最多兩碼。例如：明（日月 AB）→ <kbd>A</kbd><kbd>B</kbd>；倉（人戈日口 OIAR）→ <kbd>O</kbd><kbd>R</kbd>；頡（土口一月金 GRMBC）→ <kbd>G</kbd><kbd>C</kbd>。只有一碼的字（例如「日」）就打一碼。</p>
@@ -94,8 +102,8 @@
   <footer>字碼資料：rime-cangjie 倉頡五代字碼表（GPL）；字頻排序：rime-essay；速成碼與候選次序：quick-classic 傳統速成字表（ibus-table-chinese，源自 xcin，GPL）。收錄 Big5 常用字、次常用字及香港增補字符集（HKSCS）。部分香港字屬擴展 B 區，需要電腦有對應字型（Windows 內建細明體 ExtB）才能正常顯示。</footer>
 </main>
 
-<script src="cangjie-data.js?v=20261124e"></script>
+<script src="cangjie-data.js?v=20261125a"></script>
 <script>window.CJ_QUICK_MODE = true;</script>
-<script src="app.js?v=20261124e"></script>
+<script src="app.js?v=20261125a"></script>
 </body>
 </html>
