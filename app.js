@@ -707,7 +707,7 @@ function buildShapes() {
     `<div class="shp"><div class="shk"><b>難</b><kbd>X</kbd></div><div class="shn">難（特別鍵）</div>` +
     `<div class="shd">拆不出來的特殊字形用 X，例如「臼」打 竹難（HX）。</div></div>` +
     `<div class="shp"><div class="shk"><b>重</b><kbd>Z</kbd></div><div class="shn">重（特別鍵）</div>` +
-    `<div class="shd">${QUICK ? '速成版用 Z＋1碼 打標點符號，例如「，」打 ZB 再選 1。' : '用來打符號：ZX 開頭，例如「，」打 ZXAB。'}</div></div>`;
+    `<div class="shd">${QUICK ? '速成版用 Z＋1碼 打標點符號，例如「，」打 ZB 再選 2，「。」打 ZD 再選 1。' : '用來打符號：ZX 開頭，例如「，」打 ZXAB。'}</div></div>`;
   $('#shapeGrid').onclick = e => {
     const b = e.target.closest('button[data-ch]');
     if (!b) return;
