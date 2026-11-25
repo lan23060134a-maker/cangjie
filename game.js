@@ -56,13 +56,18 @@ function oldDark() { try { const c = JSON.parse(localStorage.getItem('cj-cfg') |
 const urlIme = new URLSearchParams(location.search).get('ime');
 const cfg = Object.assign({ ime: 'cj', range: '300', speed: 'mid', hint: false, sound: true,
   dark: oldDark() ?? !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) }, store.get('cfg', {}));
-if (urlIme === 'cj' || urlIme === 'qk') cfg.ime = urlIme;
+if (urlIme === 'cj' || urlIme === 'qk' || urlIme === 'en') cfg.ime = urlIme;
+if (!cfg.enRange) cfg.enRange = 'short';
 const saveCfg = () => store.set('cfg', cfg);
+const EN = () => cfg.ime === 'en';
+const EN_WORDS = window.EN_WORDS || [];
+const EN_RANGES = [['short', '短字（4 個字母或以下）'], ['200', '最常用 200 字'], ['all', '全部常用字（約 600 字）']];
 
 const RANGES = [['rad', '字根（24 個單碼字）'], ['300', '最常用 300 字'], ['1000', '常用 1000 字'], ['lv1', '常用字（約 5400 字）'], ['all', '常用＋次常用字']];
 const SPEEDS = { slow: [22, 2.8], mid: [34, 2.2], fast: [50, 1.7] };   // [起始速度 px/秒, 起始出字間隔 秒]
 
 function pool() {
+  if (EN()) return cfg.enRange === 'short' ? EN_WORDS.filter(w => w.length <= 4) : cfg.enRange === '200' ? EN_WORDS.slice(0, 200) : EN_WORDS;
   const r = cfg.range;
   const base = r === 'rad' ? Object.keys(RAD_CODE) : r === '300' ? LV1.slice(0, 300) : r === '1000' ? LV1.slice(0, 1000)
     : r === 'lv1' ? LV1 : LV1.concat(LV2);
@@ -96,7 +101,7 @@ function newGame() {
   for (const d of field.querySelectorAll('.drop, .pts')) d.remove();
   const [v0, gap0] = SPEEDS[cfg.speed] || SPEEDS.mid;
   G = { drops: [], score: 0, hits: 0, wrong: 0, lives: LIVES, combo: 0, maxCombo: 0, level: 1,
-    v0: cfg.ime === 'qk' ? v0 * 0.85 : v0, gap0: cfg.ime === 'qk' ? gap0 * 1.15 : gap0,
+    v0: cfg.ime === 'qk' ? v0 * 0.85 : EN() ? v0 * 0.8 : v0, gap0: cfg.ime === 'qk' ? gap0 * 1.15 : EN() ? gap0 * 1.2 : gap0,
     next: 0.3, t: 0, last: 0, running: true, paused: false, over: false, buf: '', open: false, page: 0, missed: new Map(),
     pool: pool() };
   $('#overlay').hidden = true;
@@ -114,17 +119,17 @@ function spawn() {
   do { ch = G.pool[Math.floor(Math.random() * G.pool.length)]; } while (onScreen.has(ch) && ++tries < 30);
   if (onScreen.has(ch)) return;
   const el = document.createElement('div');
-  el.className = 'drop';
-  el.innerHTML = `<span class="ch">${ch}</span>` + (cfg.hint ? `<span class="hc">${hintText(ch)}</span>` : '');
+  el.className = 'drop' + (EN() ? ' en' : '');
+  el.innerHTML = `<span class="ch">${ch}</span>` + (cfg.hint && !EN() ? `<span class="hc">${hintText(ch)}</span>` : '');
   field.appendChild(el);
-  const W = field.clientWidth, w = 74;
+  const W = field.clientWidth, w = EN() ? ch.length * 16 + 34 : 74;
   // 盡量不和最近出現的字重疊
   let x = 0;
   for (let k = 0; k < 8; k++) {
     x = 8 + Math.random() * Math.max(10, W - w - 16);
-    if (!G.drops.some(d => d.y < 90 && Math.abs(d.x - x) < w)) break;
+    if (!G.drops.some(d => d.y < 90 && x < d.x + (d.w || 74) && d.x < x + w)) break;
   }
-  const d = { ch, el, x, y: -60, v: speedNow() * (0.85 + Math.random() * 0.3) };
+  const d = { ch, el, x, w, y: -60, v: speedNow() * (0.85 + Math.random() * 0.3) };
   el.style.left = x + 'px';
   G.drops.push(d);
 }
@@ -163,6 +168,7 @@ function land(d) {
   setTimeout(() => d.el.remove(), 600);
   G.missed.set(d.ch, (G.missed.get(d.ch) || 0) + 1);
   G.lives--; G.combo = 0;
+  if (EN() && G.buf && !G.drops.some(o => o.ch.startsWith(G.buf))) clearBuf();
   field.classList.remove('hurt'); void field.offsetWidth; field.classList.add('hurt');
   beep(160, 0.25, 'sawtooth', 0.05);
   hud();
@@ -208,7 +214,13 @@ function lowest(match) {
 
 /* ---------- 輸入 ---------- */
 function showBuf() {
-  $('#buf').innerHTML = [...G.buf].map(c => `<span class="k"><b>${RAD[c]}</b><i>${c.toUpperCase()}</i></span>`).join('') + '<span class="caret"></span>';
+  $('#buf').innerHTML = (EN() ? `<span class="enbuf">${G.buf}</span>`
+    : [...G.buf].map(c => `<span class="k"><b>${RAD[c]}</b><i>${c.toUpperCase()}</i></span>`).join('')) + '<span class="caret"></span>';
+  if (EN() && G.drops) for (const d of G.drops) {
+    const m = G.buf && d.ch.startsWith(G.buf);
+    d.el.firstChild.innerHTML = m ? `<u>${G.buf}</u>${d.ch.slice(G.buf.length)}` : d.ch;
+    d.el.classList.toggle('tgt', !!m);
+  }
   const cand = $('#gcand');
   if (cfg.ime === 'qk' && G.open) {
     const list = candList(G.buf), pages = Math.max(1, Math.ceil(list.length / PAGE));
@@ -245,6 +257,12 @@ function cjAuto() {
   if (G.drops.some(o => cjCodes(o.ch).some(c => c.length > code.length && c.startsWith(code)))) return;
   hit(d); $('#gmsg').textContent = ''; clearBuf();
 }
+// 英文：整個字打完就消除；如果還有更長的字以它開頭（例如 a 和 an），要按空白鍵確認
+function enAuto() {
+  const d = lowest(d => d.ch === G.buf);
+  if (!d || G.drops.some(o => o.ch.length > G.buf.length && o.ch.startsWith(G.buf))) return;
+  hit(d); $('#gmsg').textContent = ''; clearBuf();
+}
 function qkSelect(n) {
   const list = candList(G.buf), ch = list[G.page * PAGE + n];
   if (!ch) return;
@@ -270,6 +288,11 @@ document.addEventListener('keydown', e => {
   if (/^[a-zA-Z]$/.test(k)) {
     e.preventDefault();
     const c = k.toLowerCase();
+    if (EN()) {
+      if (!G.drops.some(d => d.ch.startsWith(G.buf + c))) { wrong(`畫面上沒有以「${G.buf + c}」開頭的字`); return; }
+      G.buf += c; showBuf(); enAuto();
+      return;
+    }
     if (cfg.ime === 'qk') {
       if (G.buf.length >= 2) return;
       G.buf += c; G.page = 0; G.open = G.buf.length === 2;
@@ -283,7 +306,11 @@ document.addEventListener('keydown', e => {
   if (k === 'Backspace') { e.preventDefault(); G.buf = G.buf.slice(0, -1); G.open = false; G.page = 0; showBuf(); return; }
   if (k === ' ') {
     e.preventDefault();
-    if (cfg.ime === 'qk') {
+    if (EN()) {
+      const d = G.buf && lowest(d => d.ch === G.buf);
+      if (d) { hit(d); $('#gmsg').textContent = ''; } else if (G.buf) wrong(`「${G.buf}」還沒打完`);
+      clearBuf();
+    } else if (cfg.ime === 'qk') {
       if (!G.buf) return;
       if (!G.open) { G.open = true; G.page = 0; }
       else { const pages = Math.max(1, Math.ceil(candList(G.buf).length / PAGE)); G.page = (G.page + 1) % pages; }
@@ -316,7 +343,7 @@ function gameOver() {
   if (isBest) store.set(key, G.score);
   const acc = G.hits + G.wrong ? Math.round(G.hits / (G.hits + G.wrong) * 100) : 0;
   const missed = [...G.missed.keys()];
-  const codeOf = ch => cfg.ime === 'qk'
+  const codeOf = ch => EN() ? '' : cfg.ime === 'qk'
     ? (qkCodes(ch)[0] || '').toUpperCase() + (() => { const i = candList(qkCodes(ch)[0]).indexOf(ch); return i >= 0 ? ` 第${Math.floor(i / PAGE) + 1}頁第${i % PAGE + 1}個` : ''; })()
     : cjCodes(ch).map(c => c.toUpperCase() + '（' + [...c].map(x => RAD[x]).join('') + '）').join(' / ');
   $('#ovBody').innerHTML =
@@ -346,21 +373,29 @@ function showSetup() {
   updateHelp();
 }
 function updateHelp() {
-  $('#howto').innerHTML = cfg.ime === 'qk'
+  $('#hintLbl').hidden = EN();
+  $('#range').innerHTML = (EN() ? EN_RANGES : RANGES).map(([v, t]) => `<option value="${v}">${t}</option>`).join('');
+  $('#range').value = EN() ? cfg.enRange : cfg.range;
+  $('#howto').innerHTML = EN()
+    ? '<b>英文玩法：</b>打出落下的英文單字，整個字打完就會自動消除。畫面上已打的部分會加底線。如果還有更長的字以它開頭（例如 <b>a</b> 和 <b>an</b>），按 <kbd>空白鍵</kbd> 確認。'
+    : cfg.ime === 'qk'
     ? '<b>速成玩法：</b>打兩碼（例如「明」打 <kbd>A</kbd><kbd>B</kbd>）會自動打開候選字，再按數字選字；只有一碼的字按 <kbd>空白鍵</kbd> 開候選字。候選字超過一頁時按 <kbd>空白鍵</kbd> 翻頁。選字次序和微軟速成一樣。'
     : '<b>倉頡玩法：</b>打出字的倉頡碼（例如「明」打 <kbd>A</kbd><kbd>B</kbd>），碼對上畫面上的字就會自動消除；也可以按 <kbd>空白鍵</kbd> 確認。';
   $('#howto').innerHTML += '　<kbd>Backspace</kbd> 刪一碼，<kbd>Esc</kbd> 清除／暫停。打錯會中斷連擊，但不會扣命。';
 }
 function initUi() {
   applyTheme();
-  $('#ime').innerHTML = '<option value="cj">倉頡</option><option value="qk">速成</option>';
-  $('#range').innerHTML = RANGES.map(([v, t]) => `<option value="${v}">${t}</option>`).join('');
+  $('#ime').innerHTML = '<option value="cj">倉頡</option><option value="qk">速成</option><option value="en">英文</option>';
   $('#speed').innerHTML = '<option value="slow">慢（新手）</option><option value="mid">中</option><option value="fast">快</option>';
-  $('#ime').value = cfg.ime; $('#range').value = cfg.range; $('#speed').value = cfg.speed;
+  $('#ime').value = cfg.ime; $('#speed').value = cfg.speed;
   $('#hint').checked = cfg.hint; $('#sound').checked = cfg.sound;
   const on = (id, f) => $(id).onchange = e => { f(e.target); saveCfg(); updateHelp(); if (G) hud(); };
-  on('#ime', el => { cfg.ime = el.value; $('#backLink').href = cfg.ime === 'qk' ? 'quick.html' : 'index.html'; $('#backLink').textContent = cfg.ime === 'qk' ? '← 回速成練習' : '← 回倉頡練習'; });
-  on('#range', el => cfg.range = el.value);
+  on('#ime', el => {
+    cfg.ime = el.value;
+    const [href, txt] = { cj: ['index.html', '← 回倉頡練習'], qk: ['quick.html', '← 回速成練習'], en: ['english.html', '← 回英文打字'] }[cfg.ime];
+    $('#backLink').href = href; $('#backLink').textContent = txt;
+  });
+  on('#range', el => { if (EN()) cfg.enRange = el.value; else cfg.range = el.value; });
   on('#speed', el => cfg.speed = el.value);
   on('#hint', el => cfg.hint = el.checked);
   on('#sound', el => cfg.sound = el.checked);
